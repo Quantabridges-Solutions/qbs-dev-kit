@@ -1,0 +1,66 @@
+# ── .NET ─────────────────────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+*.nupkg
+
+# ── Node / React ──────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+.pnpm-store/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# ── React Native / Expo ───────────────────────────────────────────────────────
+.expo/
+web-build/
+.metro-health-check*
+Pods/
+ios/build/
+ios/**/xcuserdata/
+android/.gradle/
+android/**/build/
+.cxx/
+*.hprof
+*.keystore
+!debug.keystore
+
+# ── Terraform ─────────────────────────────────────────────────────────────────
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+tfplan
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# ── Environment ───────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+!.env.example
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+coverage/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.swp
+*.swo

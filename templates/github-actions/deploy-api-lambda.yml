@@ -1,0 +1,88 @@
+# Deploy .NET 8 API to AWS Lambda
+#
+# Required GitHub secrets:
+#   AWS_ACCESS_KEY_ID
+#   AWS_SECRET_ACCESS_KEY
+#   AWS_REGION                    e.g. eu-west-1
+#   LAMBDA_FUNCTION_NAME          from: terraform output lambda_function_name
+#   DATABASE_CONNECTION_STRING    optional — enables CI migration; if omitted Lambda migrates on cold start
+
+name: Deploy API to AWS Lambda
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/backend/**'
+      - '.github/workflows/deploy-api-lambda.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: dotnet test --no-build -c Release
+
+      - name: Publish for Lambda (linux-x64)
+        run: >-
+          dotnet publish {Project}.API/{Project}.API.csproj
+          -c Release
+          -r linux-x64
+          --self-contained false
+          -o "${{ runner.temp }}/lambda-publish"
+
+      - name: Apply EF Core migrations (optional)
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.DATABASE_CONNECTION_STRING }}
+        run: |
+          if [ -z "${ConnectionStrings__DefaultConnection:-}" ]; then
+            echo "DATABASE_CONNECTION_STRING not set; skipping CI migration."
+            exit 0
+          fi
+          dotnet tool install --global dotnet-ef --version 8.0.11
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef database update \
+            --project {Project}.Infrastructure/{Project}.Infrastructure.csproj \
+            --startup-project {Project}.API/{Project}.API.csproj
+
+      - name: Zip bundle
+        run: cd "${{ runner.temp }}/lambda-publish" && zip -qr "${{ runner.temp }}/lambda.zip" .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update Lambda function code
+        run: >-
+          aws lambda update-function-code
+          --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}"
+          --zip-file "fileb://${{ runner.temp }}/lambda.zip"
+
+      - name: Wait until function is active
+        run: >-
+          aws lambda wait function-updated-v2
+          --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}"

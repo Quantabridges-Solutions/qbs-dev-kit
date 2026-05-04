@@ -1,0 +1,61 @@
+---
+description: .NET 8 API — clean architecture, EF Core, JWT, caching, and conventions
+globs: src/backend/**/*.cs
+alwaysApply: false
+---
+
+# .NET 8 API Standards
+
+## Architecture layers (strict dependency direction)
+```
+Domain       → no dependencies
+Application  → depends on Domain
+Infrastructure → depends on Application + Domain
+Api          → depends on Application (never Infrastructure directly)
+```
+
+## Domain
+- Entities extend `BaseEntity` (Id, CreatedAtUtc, UpdatedAtUtc)
+- Domain interfaces live here (`IRepository<T>`, `ICacheService`, etc.)
+- No EF Core, no infrastructure concerns
+
+## Application
+- CQRS via MediatR: `{Entity}{Action}Command/Query` + `{Entity}{Action}CommandHandler/QueryHandler`
+- Validators via FluentValidation: `{Command}Validator` registered in `ValidationBehaviour`
+- `DependencyInjection.cs` registers all application services
+- DTOs are record types; keep them flat (no nested entities)
+
+## Infrastructure
+- EF Core + Npgsql; `ApplicationDbContext` inherits `DbContext`
+- **Code-first migrations only**: `dotnet ef migrations add <Name> --project Infrastructure --startup-project Api`
+- `AppDbContext.SaveChangesAsync` sets `UpdatedAtUtc` automatically via `ChangeTracker`
+- Redis via `IDistributedCache` wrapped in `RedisCacheService : ICacheService`
+- Repository pattern: `{Entity}Repository : IRepository<{Entity}>`
+
+## API
+- Controllers: thin — validate input, call mediator, return result
+- Use `[ApiController]` and route attributes; keep routes RESTful
+- Global exception handling via `ExceptionHandlerMiddleware`
+- FluentValidation errors surfaced via `ValidationExceptionFilter`
+- Scalar for API docs at `/scalar` (dev only)
+- Health checks at `/health` (postgres + redis)
+
+## JWT
+- Tokens signed with `Jwt:Key` from configuration
+- Claims: `sub` (userId), `orgId` (tenantId), standard expiry
+- `ICurrentOrganization` is scoped — inject it in services, not controllers
+
+## Configuration pattern
+```csharp
+// Required connection strings — throw on missing
+var conn = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+```
+
+## Logging
+- Serilog with `ReadFrom.Configuration` — structured, level-controlled via `appsettings.json`
+- Use `ILogger<T>` throughout; never `Console.Write*`
+
+## Tests
+- Run `dotnet build` after all changes
+- Run `dotnet test` when domain/application logic is touched

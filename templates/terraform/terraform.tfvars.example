@@ -1,0 +1,17 @@
+project_name = "myproject"
+environment  = "production"
+aws_region   = "eu-west-1"
+
+lambda_memory_mb       = 512
+lambda_timeout_seconds = 30
+
+lambda_environment = {
+  "ConnectionStrings__DefaultConnection" = "Host=your-rds.amazonaws.com;Port=5432;Database=myproject;Username=myproject;Password=YourPassword123!"
+  "ConnectionStrings__Redis"             = "your-redis.cache.amazonaws.com:6379"
+  "Jwt__Key"                             = "your-super-secret-jwt-key-min-32-chars"
+  "Jwt__Issuer"                          = "myproject-api"
+  "Jwt__Audience"                        = "myproject-app"
+  "Resend__ApiKey"                       = "re_your_api_key"
+  "Resend__From"                         = "MyProject <noreply@yourdomain.com>"
+  "ASPNETCORE_ENVIRONMENT"               = "Production"
+}

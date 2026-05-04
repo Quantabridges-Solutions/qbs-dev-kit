@@ -1,0 +1,78 @@
+---
+description: PostgreSQL + EF Core conventions — migrations, context, and repository patterns
+globs: src/backend/**/*.cs
+alwaysApply: false
+---
+
+# PostgreSQL + EF Core Standards
+
+## Migrations — code-first only
+```bash
+# Add a new migration
+dotnet ef migrations add <MigrationName> \
+  --project src/Infrastructure/Infrastructure.csproj \
+  --startup-project src/Api/Api.csproj
+
+# Apply to local DB
+dotnet ef database update \
+  --project src/Infrastructure/Infrastructure.csproj \
+  --startup-project src/Api/Api.csproj
+
+# Revert last migration
+dotnet ef migrations remove \
+  --project src/Infrastructure/Infrastructure.csproj \
+  --startup-project src/Api/Api.csproj
+```
+**Never hand-write migration files.**
+
+## DbContext
+```csharp
+public class ApplicationDbContext : DbContext
+{
+    public DbSet<MyEntity> MyEntities => Set<MyEntity>();
+
+    protected override void OnModelCreating(ModelBuilder mb)
+    {
+        // Use IEntityTypeConfiguration<T> classes in separate files
+        mb.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+            if (entry.State == EntityState.Modified)
+                entry.Entity.UpdatedAtUtc = DateTime.UtcNow;
+        return base.SaveChangesAsync(ct);
+    }
+}
+```
+
+## Entity configuration
+```csharp
+// One file per entity: Persistence/Configurations/{Entity}Configuration.cs
+public class MyEntityConfiguration : IEntityTypeConfiguration<MyEntity>
+{
+    public void Configure(EntityTypeBuilder<MyEntity> b)
+    {
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Name).HasMaxLength(200).IsRequired();
+        b.Property(e => e.OrganizationId).IsRequired(); // always on tenant entities
+        b.HasIndex(e => e.OrganizationId);
+    }
+}
+```
+
+## Base entity
+```csharp
+public abstract class BaseEntity
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public DateTime CreatedAtUtc { get; init; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+```
+
+## Connection string format
+```
+Host=localhost;Port=5432;Database={project};Username={project};Password={pass}
+```

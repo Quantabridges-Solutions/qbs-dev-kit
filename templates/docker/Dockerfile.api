@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY *.sln ./
+COPY {Project}.API/{Project}.API.csproj {Project}.API/
+COPY {Project}.Application/{Project}.Application.csproj {Project}.Application/
+COPY {Project}.Infrastructure/{Project}.Infrastructure.csproj {Project}.Infrastructure/
+COPY {Project}.Domain/{Project}.Domain.csproj {Project}.Domain/
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish {Project}.API/{Project}.API.csproj \
+    -c Release \
+    --no-restore \
+    -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 5075
+ENTRYPOINT ["dotnet", "{Project}.API.dll"]

@@ -1,0 +1,48 @@
+# Dependencies
+**/node_modules/
+**/.pnpm-store/
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+**/dist/
+**/dist-ssr/
+**/TestResults/
+**/artifacts/
+**/publish/
+
+# React Native / Expo
+**/.expo/
+**/web-build/
+**/.metro-health-check*
+**/Pods/
+**/ios/build/
+**/ios/**/xcuserdata/
+**/android/.gradle/
+**/android/**/build/
+**/.cxx/
+**/*.hprof
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/tfplan
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/tfplan
+
+# Logs & caches
+**/*.log
+.cache/
+.eslintcache
+**/coverage/
+**/.turbo/
+
+# VCS
+.git/
+
+# macOS
+**/.DS_Store

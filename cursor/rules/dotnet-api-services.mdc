@@ -1,0 +1,125 @@
+---
+description: .NET 8/10 API — traditional services architecture, EF Core, JWT, caching, and conventions
+globs: src/backend/**/*.cs
+alwaysApply: false
+---
+
+# .NET API Standards (Traditional Services)
+
+## Architecture layers
+```
+Domain/Models    → EF entities extending BaseEntity
+DTOs/            → Request/response shapes (flat records)
+Services/        → Business logic and orchestration
+Repositories/    → Data access (or use DbContext directly in services)
+Controllers/     → Thin: validate → call service → return result
+Infrastructure/  → DbContext, caching, email, external integrations
+```
+
+## Controllers — thin
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class InvoicesController(IInvoiceService invoiceService) : ControllerBase
+{
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken ct)
+    {
+        var result = await invoiceService.GetByIdAsync(id, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateInvoiceDto dto, CancellationToken ct)
+    {
+        var id = await invoiceService.CreateAsync(dto, ct);
+        return CreatedAtAction(nameof(Get), new { id }, new { id });
+    }
+}
+```
+
+## Services — own the logic
+```csharp
+public interface IInvoiceService
+{
+    Task<InvoiceDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Guid> CreateAsync(CreateInvoiceDto dto, CancellationToken ct = default);
+}
+
+public class InvoiceService(AppDbContext db, ICurrentOrganization org) : IInvoiceService
+{
+    public async Task<InvoiceDto?> GetByIdAsync(Guid id, CancellationToken ct)
+    {
+        var invoice = await db.Invoices
+            .Where(x => x.Id == id && x.OrganizationId == org.Id)
+            .FirstOrDefaultAsync(ct);
+        return invoice is null ? null : Map(invoice);
+    }
+
+    public async Task<Guid> CreateAsync(CreateInvoiceDto dto, CancellationToken ct)
+    {
+        var invoice = new Invoice { OrganizationId = org.Id, Number = dto.Number };
+        db.Invoices.Add(invoice);
+        await db.SaveChangesAsync(ct);
+        return invoice.Id;
+    }
+
+    private static InvoiceDto Map(Invoice x) => new(x.Id, x.Number, x.CreatedAtUtc);
+}
+```
+
+## Dependency Injection
+```csharp
+// Program.cs or a DependencyInjection.cs extension
+services.AddScoped<IInvoiceService, InvoiceService>();
+services.AddScoped<IAuthService, AuthService>();
+services.AddScoped<ICurrentOrganization, CurrentOrganization>();
+```
+
+## DTOs — flat records
+```csharp
+// Request
+public record CreateInvoiceDto(string Number, Guid CustomerId);
+
+// Response
+public record InvoiceDto(Guid Id, string Number, DateTime CreatedAtUtc);
+```
+
+## Models — EF entities
+```csharp
+public class Invoice : BaseEntity
+{
+    public Guid OrganizationId { get; set; }
+    public string Number { get; set; } = string.Empty;
+}
+```
+
+## Data and migrations
+- **Never hand-write migration files** — use EF Core CLI only
+- `dotnet ef migrations add <Name> --project Infrastructure --startup-project Api`
+- `dotnet ef database update --project Infrastructure --startup-project Api`
+- Seeding: `Data/DataSeeder.cs`; context: `Data/AppDbContext.cs`
+
+## Multi-tenancy
+- Scoped `ICurrentOrganization`; all tenant data filtered by `OrganizationId`
+- HTTP: `X-Organization-Id` header consumed by `OrganizationContextMiddleware`
+
+## JWT
+- Tokens via `IAuthService.GenerateToken(user)`
+- Claims: `sub` (userId), `orgId` (tenantId)
+- `ICurrentOrganization` reads `orgId` claim from `IHttpContextAccessor`
+
+## Caching
+- Inject `ICacheService` (wraps `IDistributedCache` → Redis)
+- Cache keys: `"{entity}:{id}"` or `"{entity}:org:{orgId}"`
+
+## Logging
+- `ILogger<T>` throughout via Serilog; structured, level-controlled via `appsettings.json`
+- Never `Console.Write*`
+
+## After changes
+```bash
+dotnet build
+dotnet test  # when services/domain logic is affected
+```

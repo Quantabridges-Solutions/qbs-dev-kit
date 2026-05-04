@@ -1,0 +1,81 @@
+---
+description: React Native (Expo) mobile app — stack, navigation, auth, and conventions
+globs: src/mobile/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React Native Standards (Expo)
+
+## Stack
+- **Expo** managed workflow (SDK 51+)
+- **Expo Router** for file-based navigation
+- **React Native Paper** or **NativeWind** for UI
+- **TanStack Query** for server state
+- **Axios** with centralized client (mirrors web pattern)
+- **Expo SecureStore** for token storage (not AsyncStorage for auth tokens)
+- TypeScript strict mode
+
+## Directory structure (Expo Router)
+```
+app/
+  (auth)/
+    login.tsx         # OTP send screen
+    verify.tsx        # OTP verify screen
+    register.tsx      # Sign up screen
+  (app)/
+    _layout.tsx       # Tab navigation + auth guard
+    index.tsx         # Home / dashboard
+    profile.tsx       # Profile screen
+  _layout.tsx         # Root layout (auth check, splash)
+src/
+  api/
+    client.ts         # Axios instance
+    {domain}.ts
+  components/         # Shared UI
+  hooks/
+  types/
+assets/
+  splash.png
+  icon.png
+```
+
+## Navigation
+- Expo Router file-based routing
+- Auth guard in `(app)/_layout.tsx` — redirect to `/(auth)/login` if no token
+- Tab bar in `(app)/_layout.tsx`; stack navigation inside tabs as needed
+
+## Auth — OTP flow
+1. `/(auth)/login` → enter email/phone → `POST /auth/otp/send`
+2. `/(auth)/verify` → enter 6-digit code → `POST /auth/otp/verify` → JWT
+3. Store JWT in `Expo.SecureStore` (key: `auth_token`)
+4. On app start, check for token; redirect accordingly
+
+## Splash screen
+- Configure in `app.json` under `expo.splash`
+- Use `expo-splash-screen` to delay until fonts/data loaded:
+```typescript
+await SplashScreen.preventAutoHideAsync();
+// ... load fonts, check auth
+await SplashScreen.hideAsync();
+```
+
+## API client
+```typescript
+// Identical pattern to web — single axios instance
+import { api } from '@/src/api/client';
+// Interceptor reads token from SecureStore and sets Authorization header
+```
+
+## Build
+```bash
+npx expo start              # dev mode
+npx expo run:ios            # local iOS build
+npx expo run:android        # local Android build
+eas build --platform ios    # EAS cloud build
+```
+
+## Conventions
+- Use `StyleSheet.create` or NativeWind — no inline style objects
+- Handle keyboard avoiding on all input screens
+- Always request permissions gracefully; handle denial
+- Test on both iOS and Android before marking complete

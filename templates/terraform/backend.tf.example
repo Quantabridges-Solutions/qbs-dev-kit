@@ -1,0 +1,14 @@
+# Copy this to backend.tf and fill in your values.
+# Create the S3 bucket first:
+#   aws s3 mb s3://{project}-tfstate --region {region}
+#   aws s3api put-bucket-versioning --bucket {project}-tfstate --versioning-configuration Status=Enabled
+#
+# backend.tf is gitignored — never commit it (it may contain credentials).
+
+terraform {
+  backend "s3" {
+    bucket = "{project}-tfstate"
+    key    = "{environment}/terraform.tfstate"
+    region = "eu-west-1"
+  }
+}

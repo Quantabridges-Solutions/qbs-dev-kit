@@ -1,0 +1,63 @@
+# Run .NET tests on every push and PR touching the backend
+name: .NET Build and Test
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/backend/**'
+      - '.github/workflows/dotnet-test.yml'
+  pull_request:
+    paths:
+      - 'src/backend/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: {project}_test
+          POSTGRES_USER: {project}
+          POSTGRES_PASSWORD: TestPass123!
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database={project}_test;Username={project};Password=TestPass123!"
+        run: dotnet test --no-build -c Release --logger trx --results-directory TestResults/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: src/backend/TestResults/
