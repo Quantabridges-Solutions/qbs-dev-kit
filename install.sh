@@ -118,6 +118,14 @@ echo "  (Installs both .cursor/rules/ and .claude/rules/ + CLAUDE.md)"
 echo ""
 read -r -p "  Enter project path (or press Enter to skip): " project_path
 
+# Expand ~ manually since read -r captures it as a literal character
+project_path="${project_path/#\~/$HOME}"
+
+if [ -n "$project_path" ] && [ ! -d "$project_path" ]; then
+  echo "  ⚠ Path not found: $project_path  (skipping project install)"
+  project_path=""
+fi
+
 if [ -n "$project_path" ] && [ -d "$project_path" ]; then
   if [ "$INSTALL_CURSOR" = "true" ]; then
     cursor_rules="$project_path/.cursor/rules"

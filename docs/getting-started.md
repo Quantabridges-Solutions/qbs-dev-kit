@@ -58,16 +58,17 @@ The installer then:
 
 ## Step 3 — Start a new project
 
-Open Cursor or Claude Code in your workspace directory and type:
+Create an empty folder for your project, open it in Cursor (Agent mode), and use this exact prompt — the `@` reference forces Cursor to load the skill before acting:
 
-> "Scaffold a new SaaS project called [your project name]"
+> `@~/.cursor/skills/scaffold-saas-project/SKILL.md scaffold a new SaaS project called [your project name]`
 
-The `scaffold-saas-project` skill will ask for:
-- Project name
-- AWS region (default: `eu-west-1`)
-- Which components: API / Frontend / Mobile / All
+The skill will immediately scaffold the full project — no questions asked. It uses these defaults unless you specify otherwise:
+- AWS region: `eu-west-1`
+- Components: API + Frontend + Mobile (all three)
+- .NET pattern: Traditional Services
 
-And then create the full project structure with rules, templates, and config pre-installed.
+To override a default, add it to your prompt, e.g.:  
+> `@~/.cursor/skills/scaffold-saas-project/SKILL.md scaffold a new SaaS project called invoice-flow, CQRS pattern, no mobile`
 
 ---
 
