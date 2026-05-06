@@ -1,12 +1,12 @@
 ---
 description: GitHub Actions CI/CD — workflow patterns, secrets, and deployment conventions
-paths:
-  - .github/workflows/*.yml
+globs: .github/workflows/*.yml
+alwaysApply: false
 ---
 
 # GitHub Actions Standards
 
-## Standard workflows
+## Standard workflows per SaaS product
 | File | Trigger | Purpose |
 |------|---------|---------|
 | `deploy-api-lambda.yml` | push `src/backend/**` → main | Build, publish, zip, update Lambda |
@@ -14,15 +14,21 @@ paths:
 | `dotnet-test.yml` | push/PR `src/backend/**` | Restore, build, test |
 | `mobile-ios-build.yml` | push `src/mobile/**` → main | EAS build + submit |
 
-## Required GitHub secrets
+## Required secrets (set at repo level)
 ```
-AWS_ACCESS_KEY_ID · AWS_SECRET_ACCESS_KEY · AWS_REGION
-LAMBDA_FUNCTION_NAME · FRONTEND_S3_BUCKET · CLOUDFRONT_DISTRIBUTION_ID
-VITE_API_URL · DATABASE_CONNECTION_STRING (optional)
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_REGION
+LAMBDA_FUNCTION_NAME
+FRONTEND_S3_BUCKET
+CLOUDFRONT_DISTRIBUTION_ID
+VITE_API_URL
+DATABASE_CONNECTION_STRING     # optional — enables CI migration step
 ```
 
-## Workflow skeleton
+## Workflow structure
 ```yaml
+name: Deploy API to AWS Lambda
 on:
   push:
     branches: [main]
@@ -33,15 +39,25 @@ on:
 
 permissions:
   contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
 ```
 
-## EF Core migration step (always optional — skip if secret absent)
+## EF Core migration step (Lambda workflow)
 ```yaml
-- name: Apply EF migrations
+- name: Apply EF Core migrations
   env:
     ConnectionStrings__DefaultConnection: ${{ secrets.DATABASE_CONNECTION_STRING }}
   run: |
-    [ -z "${ConnectionStrings__DefaultConnection:-}" ] && echo "Skipping" && exit 0
+    if [ -z "${ConnectionStrings__DefaultConnection:-}" ]; then
+      echo "Skipping — DATABASE_CONNECTION_STRING not set"
+      exit 0
+    fi
     dotnet tool install --global dotnet-ef --version 8.0.11
     export PATH="$PATH:$HOME/.dotnet/tools"
     dotnet ef database update \
@@ -49,7 +65,16 @@ permissions:
       --startup-project {Project}.API/{Project}.API.csproj
 ```
 
+## Path filters
+- Always add `paths:` filter to avoid unnecessary runs
+- Include the workflow file itself in its own path filter
+
+## Mobile builds
+- Use EAS (Expo Application Services) via `expo-github-action`
+- Requires `EXPO_TOKEN` secret
+- Build profiles: `development`, `preview`, `production` in `eas.json`
+
 ## Conventions
 - Use `actions/checkout@v4`, `actions/setup-dotnet@v4`, `actions/setup-node@v4`
-- Always add `paths:` filter; include workflow file itself in the filter
-- Never hardcode tool versions — use `'8.0.x'` format
+- Cache dependencies (pnpm lockfile, .NET restore)
+- Never hardcode versions — use `'8.0.x'` format for flexibility

@@ -56,6 +56,67 @@ var conn = builder.Configuration.GetConnectionString("DefaultConnection")
 - Serilog with `ReadFrom.Configuration` — structured, level-controlled via `appsettings.json`
 - Use `ILogger<T>` throughout; never `Console.Write*`
 
+## Pagination
+```csharp
+public record PagedRequest(int Page = 1, int PageSize = 25);
+public record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize)
+{
+    public int TotalPages => (int)Math.Ceiling((double)Total / PageSize);
+    public bool HasNextPage => Page < TotalPages;
+}
+
+// Query handler:
+var total = await _db.Set<TEntity>().Where(filter).CountAsync(ct);
+var items = await _db.Set<TEntity>().Where(filter)
+    .OrderByDescending(x => x.CreatedAtUtc)
+    .Skip((request.Page - 1) * request.PageSize)
+    .Take(request.PageSize)
+    .ToListAsync(ct);
+return new PagedResult<T>(items, total, request.Page, request.PageSize);
+```
+
+## Email — Resend
+```csharp
+public interface IEmailService
+{
+    Task SendAsync(string to, string subject, string htmlBody, CancellationToken ct = default);
+    Task SendOtpAsync(string to, string code, CancellationToken ct = default);
+    Task SendWelcomeAsync(string to, string name, CancellationToken ct = default);
+}
+// Register: builder.Services.AddResend(o => o.ApiToken = config["Resend:ApiKey"]!);
+// Inject IEmailService into Application command handlers — never directly into controllers
+```
+
+## File uploads — S3 pre-signed URLs
+```csharp
+public interface IStorageService
+{
+    Task<string> GetUploadUrlAsync(string key, string contentType, CancellationToken ct = default);
+    Task DeleteAsync(string key, CancellationToken ct = default);
+}
+// IStorageService is a Domain interface; S3StorageService is in Infrastructure
+// Key format: "{orgId}/{entity}/{entityId}/{filename}"
+// Client PUTs directly to S3 — API never receives binary data
+```
+
+## Health checks
+```csharp
+builder.Services.AddHealthChecks()
+    .AddNpgsql(connectionString, name: "postgres")
+    .AddRedis(redisConn, name: "redis");
+app.MapHealthChecks("/health", new HealthCheckOptions {
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+```
+
+## Global error handling (ProblemDetails)
+```csharp
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+// GlobalExceptionHandler maps domain exceptions → HTTP status codes:
+// NotFoundException → 404, ValidationException → 422, UnauthorizedException → 401
+```
+
 ## Tests
 - Run `dotnet build` after all changes
 - Run `dotnet test` when domain/application logic is touched
