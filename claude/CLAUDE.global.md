@@ -44,3 +44,7 @@ When fixing bugs, deliver:
 - Files changed
 - Code diff
 - Regression checklist
+
+## Spec-driven features (brownfield)
+For non-trivial work, follow **SDD**: keep artifacts under `specs/NNN-slug/` (`spec.md` → clarify → `plan.md` → `tasks.md` → implement). Read `docs/qbs-constitution.md` before planning. Human guide: `docs/sdd-workflow.md`. Skill: `qbs-sdd-feature`.
+

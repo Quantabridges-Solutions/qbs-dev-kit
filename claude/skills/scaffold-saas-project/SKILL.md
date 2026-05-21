@@ -46,6 +46,7 @@ mkdir -p .claude/rules
 mkdir -p .cursor/rules
 mkdir -p scripts
 mkdir -p documents
+mkdir -p specs templates/sdd scripts/sdd docs
 
 [ "$NEED_API" = true ]      && mkdir -p src/backend
 [ "$NEED_FRONTEND" = true ] && mkdir -p src/frontend
@@ -59,6 +60,18 @@ KIT=~/source/quantabridges/qbs-dev-kit
 cp "$KIT/templates/gitignore/saas-full.gitignore" .gitignore
 cp "$KIT/templates/cursorignore"                  .cursorignore
 ```
+
+Copy SDD (spec-driven development) templates and helper script:
+```bash
+cp "$KIT/docs/sdd-workflow.md" docs/
+cp "$KIT/templates/sdd/"*.md templates/sdd/
+cp "$KIT/scripts/sdd/new-feature.sh" scripts/sdd/
+chmod +x scripts/sdd/new-feature.sh
+cp "$KIT/templates/sdd/constitution-template.md" docs/qbs-constitution.md
+```
+
+Replace the `{TODAY}` placeholder in `docs/qbs-constitution.md` with today's ISO date (e.g. `2026-05-21`).
+
 
 Create `.env.example`:
 ```

@@ -20,6 +20,7 @@ This installs skills to `~/.cursor/skills/` — available in every project you o
   react-native-expo/
   aws-saas-infra/
   saas-security-review/
+  qbs-sdd-feature/          # Spec-driven development (SDD)
 ```
 
 ## What gets installed per project

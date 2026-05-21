@@ -30,6 +30,7 @@ bash ~/source/qbs-dev-kit/install.sh
     react-native-expo/
     aws-saas-infra/
     saas-security-review/
+    qbs-sdd-feature/          # Spec-driven development (SDD)
 ```
 
 ## What gets installed per project
