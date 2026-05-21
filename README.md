@@ -53,7 +53,10 @@ qbs-dev-kit/
 │   ├── docker/         # docker-compose.yml, Dockerfiles, nginx.conf
 │   ├── github-actions/ # Deploy Lambda, deploy S3/CloudFront, .NET test, iOS build
 │   ├── gitignore/      # Full-stack .gitignore
-│   └── terraform/      # Lambda, CloudFront/S3, RDS, variables, outputs
+│   ├── terraform/      # Lambda, CloudFront/S3, RDS, variables, outputs
+│   └── sdd/            # Spec / plan / tasks / checklist / constitution templates (SDD)
+├── scripts/
+│   └── sdd/            # `new-feature.sh` — bootstrap `specs/NNN-slug/`
 ├── docs/               # Setup guides and reference documentation
 └── install.sh          # Interactive installer
 ```
@@ -73,7 +76,7 @@ qbs-dev-kit/
 | `github-actions` | `.github/workflows/*.yml` | Secrets, deploy patterns, migration step |
 | `docker` | `docker-compose*.yml` | Service naming, healthchecks, Dockerfiles |
 
-### AI Skills (6 skills)
+### AI Skills (7 skills)
 
 | Skill | Trigger | Does |
 |-------|---------|------|
@@ -84,6 +87,7 @@ qbs-dev-kit/
 | `react-native-expo` | "new screen", "mobile feature" | Expo Router screen + navigation + API integration |
 | `aws-saas-infra` | "terraform", "deploy", "Lambda" | First-time setup, resource additions, manual deploy |
 | `saas-security-review` | "security review", "is this secure" | 10-point checklist + encryption + OTP templates |
+| `qbs-sdd-feature` | "spec-driven", "SDD", "feature spec", "plan before code" | Phased workflow: constitution → spec → plan → tasks → implement under `specs/NNN-slug/` |
 
 ---
 
@@ -127,6 +131,7 @@ This drops the appropriate rules into `.cursor/rules/` and `.claude/rules/` and 
 - [Claude Code Setup](docs/claude-setup.md)
 - [Rules Reference](docs/rules-reference.md)
 - [Skills Reference](docs/skills-reference.md)
+- [Spec-driven development (SDD)](docs/sdd-workflow.md)
 
 ---
 

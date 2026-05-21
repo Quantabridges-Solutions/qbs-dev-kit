@@ -31,6 +31,34 @@ Walks the agent through creating a full SaaS project from scratch:
 **Example prompt:**
 > "Scaffold a new SaaS project called `payroll-hub` on AWS eu-west-1"
 
+Also copies **spec-driven development** assets: `docs/sdd-workflow.md`, `docs/qbs-constitution.md`, `templates/sdd/`, `scripts/sdd/new-feature.sh`, and empty `specs/`.
+
+---
+
+## qbs-sdd-feature
+
+**Triggers:** "spec-driven", "SDD", "feature spec", "plan before code", "spec kit", "tasks from plan"
+
+**What it does:**
+
+Runs the **QBS spec-driven** lane for brownfield work (aligned with GitHub Spec Kit–style phases, without their CLI):
+
+1. **Constitution** — `docs/qbs-constitution.md` (create from template if missing).
+2. **Specify** — `specs/NNN-slug/spec.md` (what/why; no stack).
+3. **Clarify** — fill the Clarifications table in `spec.md`.
+4. **Plan** — `plan.md` (how; paths, migrations, APIs).
+5. **Checklist** — `checklist.md` quality gate.
+6. **Tasks** — `tasks.md` with ordering and checkpoints.
+7. **Implement** — execute tasks; reuse `dotnet-*-feature`, `react-web-saas`, etc.
+
+Use `scripts/sdd/new-feature.sh <slug>` to create a new numbered `specs/` folder from kit templates.
+
+**Example prompt (Cursor):**
+> `@~/.cursor/skills/qbs-sdd-feature/SKILL.md` Run SDD **plan** phase for `specs/003-invoice-export` using our .NET + React stack.
+
+**Example prompt (Claude Code):**
+> Use the `qbs-sdd-feature` skill: **specify** phase for exporting invoices to CSV for accountants.
+
 ---
 
 ## dotnet-services-feature *(default)*

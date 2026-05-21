@@ -72,6 +72,12 @@ To override a default, add it to your prompt, e.g.:
 
 ---
 
+## Spec-driven features (optional)
+
+For non-trivial work in an existing repo, use **`qbs-sdd-feature`** with artifacts under `specs/NNN-slug/`. See [Spec-driven development (SDD)](sdd-workflow.md). New scaffolds include `scripts/sdd/new-feature.sh` and `docs/sdd-workflow.md`.
+
+---
+
 ## Step 4 — Local development
 
 Once scaffolded:

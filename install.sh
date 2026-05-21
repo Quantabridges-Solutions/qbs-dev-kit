@@ -56,7 +56,7 @@ case "$dotnet_choice" in
     ;;
 esac
 
-COMMON_SKILLS=("scaffold-saas-project" "react-native-expo" "react-web-saas" "aws-saas-infra" "saas-security-review")
+COMMON_SKILLS=("scaffold-saas-project" "qbs-sdd-feature" "react-native-expo" "react-web-saas" "aws-saas-infra" "saas-security-review")
 COMMON_RULES_BASE=("saas-global" "postgres-efcore" "react-web" "react-native" "terraform-aws" "github-actions" "docker" "security")
 
 # ── Install Cursor skills ─────────────────────────────────────────────────────
