@@ -63,7 +63,7 @@ qbs-dev-kit/
 └── install.sh              # Interactive or `--yes` installer
 ```
 
-### AI Rules (9 topics)
+### AI Rules (10 topics)
 
 | Rule | Scope | Covers |
 |------|-------|--------|
@@ -74,7 +74,7 @@ qbs-dev-kit/
 | `postgres-efcore` | `src/backend/**/*.cs` | Code-first migrations, DbContext, entities |
 | `react-web` | `src/frontend/**/*.{ts,tsx}` | Vite, TanStack Query, Axios, Tailwind |
 | `react-native` | `src/mobile/**/*.{ts,tsx}` | Expo Router, SecureStore, OTP, navigation |
-| `terraform-aws` | `**/*.tf` | Lambda, API Gateway, S3, CloudFront, RDS, ElastiCache |
+| `terraform-aws` | `**/*.tf` | Lambda, API Gateway, S3, CloudFront, RDS, ElastiCache, variables |
 | `github-actions` | `.github/workflows/*.yml` | Secrets, deploy patterns, migration step |
 | `docker` | `docker-compose*.yml` | Service naming, healthchecks, Dockerfiles |
 
