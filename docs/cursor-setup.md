@@ -2,79 +2,59 @@
 
 ## Installation
 
-Run the installer and select **Cursor only** or **Both**:
-
 ```bash
-bash ~/source/qbs-dev-kit/install.sh
+bash /path/to/qbs-dev-kit/install.sh --provider cursor --yes
 ```
 
-This installs skills to `~/.cursor/skills/` — available in every project you open in Cursor.
+Or pick **Cursor only** / **Both** in the interactive installer.
+
+This copies canonical skills to `~/.cursor/skills/` and user rules to `~/.cursor/rules/`.
+
+You can also install the repo as a [Cursor Plugin](https://cursor.com/docs/plugins) (`.cursor-plugin/plugin.json`) or Team Marketplace source instead of copying files.
 
 ## What gets installed globally
 
 ```
 ~/.cursor/skills/
-  scaffold-saas-project/    # New project scaffolding
+  scaffold-saas-project/    # includes scripts/scaffold.sh
   dotnet-services-feature/  # or dotnet-cqrs-feature/
   react-web-saas/
   react-native-expo/
   aws-saas-infra/
   saas-security-review/
-  qbs-sdd-feature/          # Spec-driven development (SDD)
+  qbs-sdd-feature/
+  qbs-test-feature/
+  qbs-code-review/
+  qbs-observability/
+  eas-release/
+~/.cursor/rules/            # same .mdc files as a project
 ```
 
 ## What gets installed per project
 
-When you supply a project path during install (or run `/skill scaffold-saas-project`):
+When you pass `--project PATH` (or type a path in the interactive installer), or when scaffold runs:
 
 ```
-.cursor/rules/
-  saas-global.mdc           # always active
-  security.mdc              # always active
-  dotnet-api.mdc            # active on src/backend/**/*.cs
-  postgres-efcore.mdc       # active on src/backend/**/*.cs
-  react-web.mdc             # active on src/frontend/**/*.{ts,tsx}
-  react-native.mdc          # active on src/mobile/**/*.{ts,tsx}
-  terraform-aws.mdc         # active on **/*.tf
-  github-actions.mdc        # active on .github/workflows/*.yml
-  docker.mdc                # active on docker-compose*.yml
+.cursor/rules/              # glob-scoped .mdc files
+.cursor/hooks.json          # secrets + tenant-filter hooks
+.cursor/hooks/*.sh
+AGENTS.md
 ```
 
-## Using skills in Cursor
+## Using skills
 
-Skills are invoked automatically when you describe a task that matches, or you can reference them explicitly:
+Natural language is enough. Explicit attach still works:
 
 ```
-"Scaffold a new SaaS project called payroll-hub"
-→ scaffold-saas-project skill activates
-
-"Add an invoice entity with CRUD endpoints"
-→ dotnet-services-feature skill activates
-
-"Add a payments screen to the mobile app"
-→ react-native-expo skill activates
-
-"Security review this new endpoint"
-→ saas-security-review skill activates
-
-"Set up the AWS infrastructure"
-→ aws-saas-infra skill activates
+@~/.cursor/skills/scaffold-saas-project/SKILL.md scaffold a new SaaS project called payroll-hub
 ```
 
-## Verifying rules are active
+## Verifying rules
 
-In any project with the rules installed, open a `.cs` file and ask Cursor:
-
-> "What architecture pattern does this project use for the .NET API?"
-
-Cursor should respond with the correct pattern from the `dotnet-api.mdc` rule.
+Open a `.cs` file and ask: "What architecture pattern does this project use for the .NET API?"
 
 ## Adding rules to an existing project manually
 
 ```bash
-# From your project root
-mkdir -p .cursor/rules
-cp ~/source/qbs-dev-kit/cursor/rules/*.mdc .cursor/rules/
+bash /path/to/qbs-dev-kit/install.sh --provider cursor --project /path/to/app --yes
 ```
-
-Then remove any rules that don't apply (e.g. `react-native.mdc` for API-only projects).

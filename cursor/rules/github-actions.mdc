@@ -12,7 +12,10 @@ alwaysApply: false
 | `deploy-api-lambda.yml` | push `src/backend/**` → main | Build, publish, zip, update Lambda |
 | `deploy-frontend-s3.yml` | push `src/frontend/**` → main | Build Vite, sync S3, invalidate CF |
 | `dotnet-test.yml` | push/PR `src/backend/**` | Restore, build, test |
-| `mobile-ios-build.yml` | push `src/mobile/**` → main | EAS build + submit |
+| `frontend-test.yml` | push/PR `src/frontend/**` | Typecheck + test script |
+| `terraform-plan.yml` | push/PR `infra/terraform/**` | fmt, validate, plan |
+| `mobile-ios-build.yml` | push `src/mobile/**` → main | EAS iOS build + submit |
+| `mobile-android-build.yml` | push `src/mobile/**` → main | EAS Android build + submit |
 
 ## Required secrets (set at repo level)
 ```
@@ -77,4 +80,4 @@ jobs:
 ## Conventions
 - Use `actions/checkout@v4`, `actions/setup-dotnet@v4`, `actions/setup-node@v4`
 - Cache dependencies (pnpm lockfile, .NET restore)
-- Never hardcode versions — use `'8.0.x'` format for flexibility
+- Pin `8.0.x` by default; switch to `10.0.x` when the API targets net10

@@ -1,5 +1,5 @@
 ---
-description: Terraform AWS infrastructure — Lambda, API Gateway, S3, CloudFront, RDS, and conventions
+description: Terraform AWS infrastructure — Lambda, API Gateway, S3, CloudFront, RDS, ElastiCache, and conventions
 globs: {infra,terraform}/**/*.tf
 alwaysApply: false
 ---
@@ -12,6 +12,7 @@ alwaysApply: false
 | API | Lambda (dotnet8) + API Gateway HTTP v2 |
 | Frontend | S3 (private) + CloudFront (OAC) |
 | Database | RDS PostgreSQL (or Aurora Serverless v2) |
+| Cache | ElastiCache Redis (optional; `create_elasticache`) |
 | Secrets | Lambda env vars via `var.lambda_environment` |
 
 ## File layout
@@ -25,7 +26,8 @@ infra/terraform/
   lambda_api.tf       # Lambda + API Gateway
   s3_cloudfront.tf    # Frontend hosting
   rds.tf              # Database (when applicable)
-  outputs.tf          # Exported values (API URL, CF domain, etc.)
+  elasticache.tf      # Redis (when create_elasticache = true)
+  outputs.tf          # Exported values (API URL, CF domain, Redis endpoint)
   terraform.tfvars    # Actual values — gitignored
   scripts/
     plan              # terraform plan wrapper
@@ -81,5 +83,6 @@ variable "lambda_environment" { type = map(string) }
 ## Security
 - S3 bucket: always `block_public_acls = true`, use OAC (not OAI)
 - CloudFront: `viewer_protocol_policy = "redirect-to-https"`
-- Lambda: minimal IAM role (AWSLambdaBasicExecutionRole + specific permissions only)
+- Lambda: minimal IAM role (AWSLambdaBasicExecutionRole + VPC access role when RDS/Redis)
+- ElastiCache: not publicly reachable; ingress only from the Lambda security group
 - Never put secrets in tfvars committed to git

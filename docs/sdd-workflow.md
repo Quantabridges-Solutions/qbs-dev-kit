@@ -26,6 +26,8 @@ Skip or shorten for pure chores (lint, version bumps) and spikes (label the spik
 | Plan | `specs/.../plan.md` | **How** — stack, files, migrations, API shapes, risks. |
 | Tasks | `specs/.../tasks.md` | Ordered work, optional `[P]` parallel markers, checkpoints. |
 | Checklist | `specs/.../checklist.md` | Quality gate on clarity and coverage. |
+| Analyze | `specs/.../analyze.md` | Spec/plan/tasks consistency (before implement). |
+| Converge | `tasks.md` § Convergence | After implement: leftover work appended, never rewritten. |
 
 Templates ship in the kit at `templates/sdd/`. New scaffolds copy them into the repo under `templates/sdd/` plus `docs/sdd-workflow.md`.
 
@@ -39,7 +41,7 @@ From the repository root (after scaffold or manual copy of `scripts/sdd/` and `t
 ./scripts/sdd/new-feature.sh invoice-export --title "Invoice CSV export"
 ```
 
-This creates `specs/00N-invoice-export/` with `spec.md`, `plan.md`, `tasks.md`, and `checklist.md` filled with placeholders.
+This creates `specs/00N-invoice-export/` with `spec.md`, `plan.md`, `tasks.md`, `checklist.md`, and `analyze.md` filled with placeholders.
 
 ---
 
@@ -51,8 +53,12 @@ This creates `specs/00N-invoice-export/` with `spec.md`, `plan.md`, `tasks.md`, 
 4. **Plan** — Write `plan.md` with concrete paths under `src/backend`, `src/frontend`, `infra/terraform`, etc.
 5. **Checklist** — Run through `checklist.md`; update spec/plan if gaps appear.
 6. **Tasks** — Break `plan.md` into `tasks.md` with phases per user story and checkpoints.
-7. **Implement** — Execute tasks in order; use existing QBS skills for vertical slices where applicable.
-8. **Verify** — Acceptance criteria from `spec.md` plus `dotnet build` / tests / lint as in your repo.
+7. **Analyze** — Fill `analyze.md`. Do not implement until conflicts are resolved (or the user accepts them).
+8. **Implement** — Execute tasks in order; use existing QBS skills for vertical slices where applicable.
+9. **Converge** — Compare the codebase to spec/plan/tasks. If gaps remain, append a Convergence section to `tasks.md` and implement again until **Converged**.
+10. **Verify** — Acceptance criteria from `spec.md` plus `dotnet test` / frontend tests.
+
+Optional: convert tasks to GitHub issues (`gh issue create`) after the tasks phase.
 
 ---
 
@@ -68,7 +74,7 @@ Install the kit with `install.sh` so **`qbs-sdd-feature`** is available in `~/.c
 
 **Example (Claude Code):** same content; reference `~/.claude/skills/qbs-sdd-feature/SKILL.md` or describe the phase naturally.
 
-The skill encodes the same phases so **Cursor and Claude stay aligned** — one workflow, two skill copies (format differences only).
+The skill encodes the same phases so **Cursor and Claude stay aligned** — one workflow, one skill in `skills/` (copied to both providers).
 
 ---
 

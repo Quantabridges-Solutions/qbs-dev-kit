@@ -30,6 +30,12 @@ resource "aws_iam_role_policy_attachment" "api_lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "api_lambda_vpc" {
+  count      = local.lambda_in_vpc ? 1 : 0
+  role       = aws_iam_role.api_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_lambda_function" "api" {
   function_name = local.lambda_function_name
   role          = aws_iam_role.api_lambda.arn
@@ -47,6 +53,14 @@ resource "aws_lambda_function" "api" {
     variables = var.lambda_environment
   }
 
+  dynamic "vpc_config" {
+    for_each = local.lambda_in_vpc ? [1] : []
+    content {
+      subnet_ids         = var.db_subnet_ids
+      security_group_ids = [aws_security_group.lambda[0].id]
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       filename,
@@ -57,7 +71,10 @@ resource "aws_lambda_function" "api" {
     ]
   }
 
-  depends_on = [aws_iam_role_policy_attachment.api_lambda_basic]
+  depends_on = [
+    aws_iam_role_policy_attachment.api_lambda_basic,
+    aws_iam_role_policy_attachment.api_lambda_vpc,
+  ]
 }
 
 resource "aws_apigatewayv2_api" "http" {

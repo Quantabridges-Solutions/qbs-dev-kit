@@ -6,7 +6,7 @@ Rules give the AI agent persistent knowledge about your stack. They load automat
 
 | Format | Location | Loaded by |
 |--------|----------|-----------|
-| `.mdc` | `.cursor/rules/` (per project) | Cursor |
+| `.mdc` | `~/.cursor/rules/` (user) and `.cursor/rules/` (project) | Cursor |
 | `.md` | `.claude/rules/` (per project or `~/.claude/rules/` globally) | Claude Code |
 
 ---
@@ -108,7 +108,7 @@ Expo managed workflow with Expo Router. Enforces `Expo.SecureStore` for token st
 
 **Active when:** `infra/**/*.tf`, `terraform/**/*.tf`
 
-Standard AWS stack: Lambda (dotnet8) + API Gateway HTTP v2, S3 + CloudFront (OAC), RDS PostgreSQL. Enforces naming convention (`{project}-{resource}-{env}`), Lambda placeholder bootstrap pattern, SPA CloudFront routing, HTTPS-only, private S3, minimal IAM.
+Standard AWS stack: Lambda (dotnet8) + API Gateway HTTP v2, S3 + CloudFront (OAC), RDS PostgreSQL, optional ElastiCache Redis. Enforces naming convention (`{project}-{resource}-{env}`), Lambda placeholder bootstrap pattern, SPA CloudFront routing, HTTPS-only, private S3, VPC for Lambda when RDS or Redis is enabled, minimal IAM.
 
 ---
 
@@ -116,7 +116,7 @@ Standard AWS stack: Lambda (dotnet8) + API Gateway HTTP v2, S3 + CloudFront (OAC
 
 **Active when:** `.github/workflows/*.yml`
 
-Standard workflow patterns for Lambda deploy, S3/CloudFront deploy, .NET test, and iOS mobile build. Enforces path filters on all workflows, the optional EF migration step pattern, and required secret names.
+Standard workflow patterns for Lambda deploy, S3/CloudFront deploy, .NET test, frontend test, Terraform plan, and EAS iOS + Android builds. Enforces path filters on all workflows, the optional EF migration step pattern, and required secret names.
 
 ---
 

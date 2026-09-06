@@ -48,10 +48,10 @@ variable "db_password" {
 }
 
 locals {
-  lambda_in_vpc            = var.create_rds
+  lambda_in_vpc              = var.create_rds || var.create_elasticache
   lambda_security_group_name = "${var.project_name}-lambda-sg-${var.environment}"
-  db_security_group_name   = "${var.project_name}-db-sg-${var.environment}"
-  prefix                   = "${var.project_name}-${var.environment}"
+  db_security_group_name     = "${var.project_name}-db-sg-${var.environment}"
+  prefix                     = "${var.project_name}-${var.environment}"
 }
 
 resource "aws_security_group" "lambda" {

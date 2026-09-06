@@ -17,11 +17,13 @@
 
 ## Step 1 — Clone the kit
 
+Clone it wherever you like and keep the checkout — `install.sh` records its path in `~/.config/qbs-dev-kit/kit-root` so scaffold can find templates after skills are copied to `~/.cursor/skills`.
+
 ```bash
 git clone https://github.com/Quantabridges-Solutions/qbs-dev-kit.git ~/source/qbs-dev-kit
 ```
 
-Keep it here permanently — the installer references this path, and you can `git pull` to get updates.
+Override anytime with `export QBS_KIT_ROOT=/path/to/qbs-dev-kit`.
 
 ---
 
@@ -31,93 +33,97 @@ Keep it here permanently — the installer references this path, and you can `gi
 bash ~/source/qbs-dev-kit/install.sh
 ```
 
-You'll be asked three questions:
+Non-interactive:
 
-**1. Which AI provider?**
-```
-1) Cursor only
-2) Claude Code only
-3) Both Cursor + Claude Code   ← recommended
-```
-
-**2. Which .NET architecture pattern?**
-```
-1) Traditional Services  ← recommended (Controllers → Services → DbContext)
-2) CQRS / MediatR
+```bash
+bash ~/source/qbs-dev-kit/install.sh --yes --provider both --dotnet services
+bash ~/source/qbs-dev-kit/install.sh --project ~/source/my-app --yes
+bash ~/source/qbs-dev-kit/install.sh --dry-run --yes
+bash ~/source/qbs-dev-kit/install.sh --uninstall
 ```
 
-**3. Which project to drop rules into? (optional)**
-Enter the full path to an existing project to install rules directly, or press Enter to skip.
+Interactive prompts (skipped with `--yes`):
+
+**1. Which AI provider?** Cursor / Claude Code / Both (default)
+
+**2. Which .NET architecture?** Traditional Services (default) or CQRS/MediatR
+
+**3. Project path?** Optional — installs rules, hooks, `AGENTS.md`, and `CLAUDE.md`
 
 The installer then:
-- Copies skills to `~/.cursor/skills/` and/or `~/.claude/skills/`
-- Copies rules to `~/.claude/rules/` (Claude global rules)
-- Installs `~/.claude/CLAUDE.md` (global Claude context)
+
+- Copies canonical `skills/` into `~/.cursor/skills/` and/or `~/.claude/skills/`
+- Copies Cursor rules to `~/.cursor/rules/` (and Claude rules to `~/.claude/rules/`)
+- Installs `~/.claude/CLAUDE.md`
 
 ---
 
 ## Step 3 — Start a new project
 
-Create an empty folder for your project, open it in Cursor (Agent mode), and use this exact prompt — the `@` reference forces Cursor to load the skill before acting:
+Create an empty folder, open it in the agent, and say:
 
-> `@~/.cursor/skills/scaffold-saas-project/SKILL.md scaffold a new SaaS project called [your project name]`
+> Scaffold a new SaaS project called [your project name]
 
-The skill will immediately scaffold the full project — no questions asked. It uses these defaults unless you specify otherwise:
+If you do **not** name components, the skill asks **once** which to include (`all` / `api` / `frontend` / `mobile` / `api+frontend` / `api+mobile`), then runs `scripts/scaffold.sh` and the language toolchains with no further questions.
+
+Defaults unless you override them in the prompt:
+
 - AWS region: `eu-west-1`
-- Components: API + Frontend + Mobile (all three)
+- Components: asked once; Enter → `all`
 - .NET pattern: Traditional Services
 
-To override a default, add it to your prompt, e.g.:  
-> `@~/.cursor/skills/scaffold-saas-project/SKILL.md scaffold a new SaaS project called invoice-flow, CQRS pattern, no mobile`
+Examples:
+
+> Scaffold a new SaaS project called invoice-flow, CQRS pattern, no mobile  
+> `@~/.cursor/skills/scaffold-saas-project/SKILL.md` scaffold payroll-hub, api+frontend only
 
 ---
 
 ## Spec-driven features (optional)
 
-For non-trivial work in an existing repo, use **`qbs-sdd-feature`** with artifacts under `specs/NNN-slug/`. See [Spec-driven development (SDD)](sdd-workflow.md). New scaffolds include `scripts/sdd/new-feature.sh` and `docs/sdd-workflow.md`.
+For non-trivial work, use **`qbs-sdd-feature`**: constitution → specify → clarify → plan → checklist → tasks → **analyze** → implement → **converge**. See [Spec-driven development (SDD)](sdd-workflow.md).
 
 ---
 
 ## Step 4 — Local development
 
-Once scaffolded:
-
 ```bash
 cd your-project
-
-# Copy and fill environment variables
-cp .env.example .env
-# Edit .env — set DB_PASSWORD, JWT_KEY, RESEND_API_KEY
-
-# Start everything
-docker-compose up
+cp .env.example .env   # DB_PASSWORD, JWT_KEY, RESEND_API_KEY
+docker compose up
 ```
 
-Services available at:
 - API: `http://localhost:5075`
 - Frontend: `http://localhost:3000`
 - API docs (Scalar): `http://localhost:5075/scalar`
 - Email capture: `http://localhost:5050`
-- Health check: `http://localhost:5075/health`
+- Health: `http://localhost:5075/health`
 
 ---
 
 ## Step 5 — First-time AWS deployment
 
-See [AWS Infrastructure Setup](cursor-setup.md#aws) or ask your AI agent:
+> Set up the AWS infrastructure for this project
 
-> "Set up the AWS infrastructure for this project"
+`aws-saas-infra` walks through Terraform. Optional Redis: `create_elasticache = true` (needs VPC + private subnets, same as RDS).
 
-The `aws-saas-infra` skill will walk through Terraform init, plan, and apply, and tell you which values to set as GitHub secrets.
+---
+
+## Optional companion skills (not vendored here)
+
+```bash
+npx skills add hashicorp/agent-skills --skill terraform-style-guide
+npx skills add vercel-labs/agent-skills --skill react-best-practices
+```
+
+Keep QBS skills for OTP, `OrganizationId`, and Lambda; use those for HCL/React style.
 
 ---
 
 ## Keeping the kit updated
 
 ```bash
-cd ~/source/qbs-dev-kit
+cd "$QBS_KIT_ROOT"   # or the path in ~/.config/qbs-dev-kit/kit-root
 git pull
-bash install.sh
+bash install.sh --yes
 ```
-
-Re-running the installer updates all installed skills and rules automatically.

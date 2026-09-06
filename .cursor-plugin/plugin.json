@@ -1,0 +1,12 @@
+{
+  "name": "qbs-dev-kit",
+  "displayName": "QBS Dev Kit",
+  "version": "2.0.0",
+  "description": "QBS SaaS agent skills, rules, and hooks for .NET, React, Expo, Terraform, and spec-driven development.",
+  "author": {
+    "name": "Quantabridges Solutions"
+  },
+  "skills": "./skills",
+  "rules": "./cursor/rules",
+  "hooks": "./templates/hooks/hooks.json"
+}

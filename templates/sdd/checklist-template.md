@@ -23,7 +23,13 @@
 - [ ] Task order respects dependencies (models before services before UI, etc.).
 - [ ] Parallel **[P]** tasks do not edit the same files.
 
-## Post-implementation (fill after `/speckit.implement` or QBS implement step)
+## Analyze (before implement)
+
+- [ ] `analyze.md` completed; no unresolved conflicts.
+- [ ] Every acceptance criterion maps to a task (or is explicitly deferred).
+
+## Post-implementation (fill after implement + converge)
 
 - [ ] All checkboxes in `spec.md` acceptance criteria verified.
+- [ ] Converge reported **Converged** (or remaining tasks appended and done).
 - [ ] Regression checklist from PR / agent run completed.

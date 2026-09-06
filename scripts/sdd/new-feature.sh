@@ -94,8 +94,12 @@ cp "${TEMPLATE_SRC}/spec-template.md" "${DEST}/spec.md"
 cp "${TEMPLATE_SRC}/plan-template.md" "${DEST}/plan.md"
 cp "${TEMPLATE_SRC}/tasks-template.md" "${DEST}/tasks.md"
 cp "${TEMPLATE_SRC}/checklist-template.md" "${DEST}/checklist.md"
+if [[ -f "${TEMPLATE_SRC}/analyze-template.md" ]]; then
+  cp "${TEMPLATE_SRC}/analyze-template.md" "${DEST}/analyze.md"
+fi
 
-for f in spec plan tasks checklist; do
+for f in spec plan tasks checklist analyze; do
+  [[ -f "${DEST}/${f}.md" ]] || continue
   tmp="${DEST}/${f}.md.tmp"
   mv "${DEST}/${f}.md" "$tmp"
   substitute <"$tmp" >"${DEST}/${f}.md"
@@ -103,4 +107,4 @@ for f in spec plan tasks checklist; do
 done
 
 echo "Created ${DEST}/"
-echo "  spec.md  plan.md  tasks.md  checklist.md"
+echo "  spec.md  plan.md  tasks.md  checklist.md  analyze.md"

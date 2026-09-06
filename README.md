@@ -41,24 +41,26 @@ Every new project starts production-ready with:
 
 ```
 qbs-dev-kit/
-├── cursor/
-│   ├── rules/          # .mdc rules for Cursor AI agent
-│   └── skills/         # Agent skills for Cursor (~/.cursor/skills/)
+├── skills/                 # Canonical Agent Skills (copied to Cursor + Claude)
+├── cursor/rules/           # .mdc rules for Cursor
 ├── claude/
-│   ├── CLAUDE.global.md   # Global context for Claude Code (~/.claude/CLAUDE.md)
-│   ├── CLAUDE.project.md  # Per-project CLAUDE.md template
-│   ├── rules/          # .md rules for Claude Code (~/.claude/rules/)
-│   └── skills/         # Agent skills for Claude Code (~/.claude/skills/)
+│   ├── CLAUDE.global.md
+│   ├── CLAUDE.project.md
+│   └── rules/
 ├── templates/
-│   ├── docker/         # docker-compose.yml, Dockerfiles, nginx.conf
-│   ├── github-actions/ # Deploy Lambda, deploy S3/CloudFront, .NET test, iOS build
-│   ├── gitignore/      # Full-stack .gitignore
-│   ├── terraform/      # Lambda, CloudFront/S3, RDS, variables, outputs
-│   └── sdd/            # Spec / plan / tasks / checklist / constitution templates (SDD)
+│   ├── docker/
+│   ├── github-actions/     # Lambda, S3/CloudFront, tests, EAS iOS+Android, Terraform plan
+│   ├── terraform/          # Lambda, CloudFront/S3, RDS, ElastiCache, variables
+│   ├── sdd/                # Spec, plan, tasks, checklist, analyze, constitution
+│   ├── hooks/              # Cursor hooks (secrets + tenant filter)
+│   └── agents/             # AGENTS.md template
 ├── scripts/
-│   └── sdd/            # `new-feature.sh` — bootstrap `specs/NNN-slug/`
-├── docs/               # Setup guides and reference documentation
-└── install.sh          # Interactive installer
+│   ├── sdd/new-feature.sh
+│   ├── scaffold-project.sh
+│   └── validate-skills.sh
+├── .cursor-plugin/         # Cursor Plugin manifest (team marketplace)
+├── plugin.json             # Open Agent Plugin (skills)
+└── install.sh              # Interactive or `--yes` installer
 ```
 
 ### AI Rules (9 topics)
@@ -72,22 +74,26 @@ qbs-dev-kit/
 | `postgres-efcore` | `src/backend/**/*.cs` | Code-first migrations, DbContext, entities |
 | `react-web` | `src/frontend/**/*.{ts,tsx}` | Vite, TanStack Query, Axios, Tailwind |
 | `react-native` | `src/mobile/**/*.{ts,tsx}` | Expo Router, SecureStore, OTP, navigation |
-| `terraform-aws` | `**/*.tf` | Lambda, API Gateway, S3, CloudFront, RDS |
+| `terraform-aws` | `**/*.tf` | Lambda, API Gateway, S3, CloudFront, RDS, ElastiCache |
 | `github-actions` | `.github/workflows/*.yml` | Secrets, deploy patterns, migration step |
 | `docker` | `docker-compose*.yml` | Service naming, healthchecks, Dockerfiles |
 
-### AI Skills (7 skills)
+### AI Skills
 
 | Skill | Trigger | Does |
 |-------|---------|------|
-| `scaffold-saas-project` | "new project", "scaffold" | Creates full project structure, copies all rules and templates |
-| `dotnet-services-feature` | "add feature", "new endpoint" | Scaffolds entity + DTOs + service + controller + migration |
-| `dotnet-cqrs-feature` | "add feature" (CQRS projects) | Scaffolds command + query + handlers + controller |
+| `scaffold-saas-project` | "new project", "scaffold" | Copies kit files via `scripts/scaffold.sh`, then language toolchains |
+| `dotnet-services-feature` | "add feature", "new endpoint" | Entity + DTOs + service + controller + EF CLI migration |
+| `dotnet-cqrs-feature` | "add feature" (CQRS projects) | Command + query + handlers + controller |
 | `react-web-saas` | "new page", "add component" | Page + API hook + TanStack Query + routing |
-| `react-native-expo` | "new screen", "mobile feature" | Expo Router screen + navigation + API integration |
-| `aws-saas-infra` | "terraform", "deploy", "Lambda" | First-time setup, resource additions, manual deploy |
+| `react-native-expo` | "new screen", "mobile feature" | Expo Router screen + navigation + API |
+| `aws-saas-infra` | "terraform", "deploy", "Lambda" | First-time setup, RDS/Redis, manual deploy |
 | `saas-security-review` | "security review", "is this secure" | 10-point checklist + encryption + OTP templates |
-| `qbs-sdd-feature` | "spec-driven", "SDD", "feature spec", "plan before code" | Phased workflow: constitution → spec → plan → tasks → implement under `specs/NNN-slug/` |
+| `qbs-sdd-feature` | "spec-driven", "SDD", "analyze", "converge" | Constitution → spec → plan → analyze → implement → converge |
+| `qbs-test-feature` | "add tests", "Playwright", "tenant isolation" | xUnit WebApplicationFactory + frontend tests |
+| `qbs-code-review` | "review this PR", "code review" | QBS convention review (OTP, OrganizationId, EF CLI) |
+| `qbs-observability` | "logging", "correlation id", "CloudWatch" | Serilog + correlation IDs for Lambda |
+| `eas-release` | "EAS", "Play Store", "App Store" | iOS + Android EAS build/submit |
 
 ---
 
@@ -97,13 +103,11 @@ qbs-dev-kit/
 
 ```bash
 git clone https://github.com/Quantabridges-Solutions/qbs-dev-kit.git ~/source/qbs-dev-kit
-bash ~/source/qbs-dev-kit/install.sh
+bash ~/source/qbs-dev-kit/install.sh --yes
+# or interactive: bash ~/source/qbs-dev-kit/install.sh
 ```
 
-The installer will ask:
-1. **Which AI provider?** — Cursor / Claude Code / Both
-2. **Which .NET pattern?** — Traditional Services (default) or CQRS/MediatR
-3. **Target project path?** — Optional: drop rules directly into an existing project
+Non-interactive flags: `--provider cursor|claude|both` `--dotnet services|cqrs` `--project PATH` `--dry-run` `--uninstall`.
 
 ### 2. Start a new project
 
@@ -120,7 +124,7 @@ bash ~/source/qbs-dev-kit/install.sh
 # When prompted for project path, enter your project directory
 ```
 
-This drops the appropriate rules into `.cursor/rules/` and `.claude/rules/` and creates a `CLAUDE.md` template.
+This drops rules into `.cursor/rules/` and `.claude/rules/`, Cursor hooks, `AGENTS.md`, and a `CLAUDE.md` template.
 
 ---
 

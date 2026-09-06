@@ -74,3 +74,5 @@ Feature specs and plans live under `specs/NNN-slug/` (`spec.md`, `plan.md`, `tas
 ## Notes
 <!-- Add project-specific context here that Claude should know every session -->
 <!-- Examples: external API quirks, business rules, special auth flows, known issues -->
+
+Also see `AGENTS.md` (Cursor/Codex) — keep the two files aligned on layout and hard rules.

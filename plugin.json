@@ -1,0 +1,6 @@
+{
+  "name": "qbs-dev-kit",
+  "version": "2.0.0",
+  "description": "Portable Agent Plugin: QBS SaaS skills for Cursor, Claude Code, and other Agent Skills clients.",
+  "skills": "./skills"
+}

@@ -2,6 +2,11 @@ project_name = "myproject"
 environment  = "production"
 aws_region   = "eu-west-1"
 
+create_rds          = false
+create_elasticache  = false
+# vpc_id            = "vpc-xxxxxxxx"
+# db_subnet_ids     = ["subnet-aaa", "subnet-bbb"]
+
 lambda_memory_mb       = 512
 lambda_timeout_seconds = 30
 

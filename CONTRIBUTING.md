@@ -26,4 +26,6 @@ If you find something incorrect or outdated:
 
 See the [Getting Started guide](docs/getting-started.md) for full setup instructions.
 
+Skills live in `skills/` only (one source for Cursor and Claude). After editing a `SKILL.md`, run `bash scripts/validate-skills.sh`.
+
 The kit is licensed under [CC BY-ND 4.0](LICENSE) — you are free to use it in your own projects, but may not redistribute modified versions as your own kit.

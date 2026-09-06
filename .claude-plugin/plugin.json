@@ -1,0 +1,8 @@
+{
+  "name": "qbs-dev-kit",
+  "description": "QBS SaaS skills and rules for Claude Code — .NET, React, Expo, Terraform, SDD.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Quantabridges Solutions"
+  }
+}

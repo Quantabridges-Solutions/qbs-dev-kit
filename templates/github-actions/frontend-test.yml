@@ -1,0 +1,49 @@
+# Frontend unit / Playwright tests
+name: Frontend test
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/frontend/**'
+      - '.github/workflows/frontend-test.yml'
+  pull_request:
+    paths:
+      - 'src/frontend/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: |
+          if pnpm run | grep -q ' test'; then
+            pnpm test
+          else
+            echo "No test script — skip (add Vitest or Playwright; see qbs-test-feature skill)"
+          fi
