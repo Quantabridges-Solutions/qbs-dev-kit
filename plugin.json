@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qbs-dev-kit",
-  "version": "3.0.0",
-  "description": "QBS agentic delivery platform: portable engineering skills, governed agents, policies, evals, and SaaS delivery standards.",
+  "version": "3.1.0",
+  "description": "QBS agentic delivery platform: portable engineering skills, governed agents, executable evals, preview environments, telemetry, and SaaS delivery standards.",
   "author": {
     "name": "Quantabridges Solutions",
     "url": "https://qbs-tech.com"
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/Quantabridges-Solutions/qbs-dev-kit",
   "repository": "https://github.com/Quantabridges-Solutions/qbs-dev-kit",
   "license": "CC-BY-ND-4.0",
-  "keywords": ["agentic-development", "saas", "dotnet", "react", "aws", "terraform", "sdd"]
+  "keywords": ["agentic-development", "saas", "dotnet", "react", "aws", "terraform", "sdd", "github-agentic-workflows", "evals"]
 }
