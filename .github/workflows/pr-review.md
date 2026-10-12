@@ -11,6 +11,8 @@ on:
 if: github.event.pull_request.draft == false
 engine: copilot
 strict: true
+max-ai-credits: 125
+max-daily-ai-credits: 1500
 
 graders: {}
 
@@ -37,7 +39,9 @@ tools:
     - "git status"
 
 safe-outputs:
-  threat-detection: true
+  threat-detection:
+    max-ai-credits: 50
+    continue-on-error: false
   add-comment:
     max: 1
   create-pull-request-review-comment:
