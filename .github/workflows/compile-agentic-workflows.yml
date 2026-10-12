@@ -1,0 +1,74 @@
+name: Compile Agentic Workflows
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/workflows/*.md'
+      - 'aw.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/*.md'
+      - 'aw.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gh-aw-compile-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned GitHub Agentic Workflows CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh extension install github/gh-aw --pin v0.91.8
+
+      - name: Compile and harden agentic workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh aw compile --strict --yamllint
+          gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")'
+          git status --porcelain -- .github/workflows .github/aw > "${RUNNER_TEMP}/agentic-lock-drift.txt"
+
+      - name: Upload compiled lock evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compiled-agentic-workflows-${{ github.run_id }}
+          path: |
+            .github/workflows/*.lock.yml
+            .github/aw/actions-lock.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Verify committed lock state
+        run: |
+          tracked_locks="$(git ls-files '.github/workflows/*.lock.yml' | wc -l | tr -d ' ')"
+          if [ "$tracked_locks" = "0" ]; then
+            echo "No gh-aw lock files are committed yet. Source compilation succeeded and the reviewed lock artifact is attached to this run."
+            echo "Activation requires a maintainer-authenticated local 'gh aw compile' followed by committing the generated *.lock.yml and .github/aw/actions-lock.json files."
+            exit 0
+          fi
+
+          if [ -s "${RUNNER_TEMP}/agentic-lock-drift.txt" ]; then
+            echo "Committed agentic workflow lock files are stale:" >&2
+            cat "${RUNNER_TEMP}/agentic-lock-drift.txt" >&2
+            echo "Run 'gh aw compile --strict --yamllint', review the generated files, and commit them." >&2
+            exit 1
+          fi
+
+          echo "Committed agentic workflow lock files match source."

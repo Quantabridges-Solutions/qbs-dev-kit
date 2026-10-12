@@ -4,13 +4,16 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Deployment environment: staging | production"
+  description = "Deployment environment: dev | staging | production | pr-N preview"
   type        = string
   default     = "production"
 
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "environment must be 'staging' or 'production'."
+    condition = (
+      contains(["dev", "staging", "production"], var.environment) ||
+      can(regex("^pr-[0-9]+$", var.environment))
+    )
+    error_message = "environment must be dev, staging, production, or a PR preview name such as pr-123."
   }
 }
 

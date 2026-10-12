@@ -5,17 +5,77 @@
   "type": "object",
   "required": ["schemaVersion", "runId", "agent", "task", "startedAt", "outcome"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "enum": [1, 2] },
     "runId": { "type": "string", "minLength": 1 },
+    "workflow": { "type": "string" },
+    "workflowRunId": { "type": ["string", "integer"] },
+    "repository": { "type": "string" },
+    "trigger": { "type": "string" },
     "agent": { "type": "string", "minLength": 1 },
     "task": { "type": "string", "minLength": 1 },
+    "engine": { "type": "string" },
+    "provider": { "type": "string" },
     "model": { "type": "string" },
+    "modelRequested": { "type": "string" },
+    "modelObserved": { "type": "string" },
     "policyVersion": { "type": "string" },
     "promptVersion": { "type": "string" },
     "startedAt": { "type": "string", "format": "date-time" },
     "completedAt": { "type": "string", "format": "date-time" },
+    "durationSeconds": { "type": "number", "minimum": 0 },
     "filesChanged": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "toolsUsed": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "cachedTokens": { "type": "integer", "minimum": 0 },
+        "aiCredits": { "type": "number", "minimum": 0 },
+        "estimatedUsd": { "type": "number", "minimum": 0 },
+        "premiumRequests": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "trajectory": {
+      "type": "object",
+      "properties": {
+        "toolSuccessRate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "toolFailureCount": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "loops": { "type": "integer", "minimum": 0 },
+        "objectiveCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "groundingAccuracy": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "evals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "result": { "enum": ["YES", "NO", "UNKNOWN"] },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "graders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["passed", "failed", "error", "unavailable"] },
+          "value": { "type": ["number", "integer", "boolean", "string", "null"] },
+          "unit": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
     "checks": {
       "type": "array",
       "items": {
@@ -40,6 +100,19 @@
           "approver": { "type": "string" }
         },
         "additionalProperties": false
+      }
+    },
+    "safeOutputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "status"],
+        "properties": {
+          "type": { "type": "string" },
+          "status": { "enum": ["applied", "blocked", "skipped", "failed", "warning"] },
+          "target": { "type": "string" }
+        },
+        "additionalProperties": true
       }
     },
     "outcome": { "enum": ["passed", "failed", "blocked", "cancelled"] },

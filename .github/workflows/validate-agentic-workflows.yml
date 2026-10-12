@@ -1,0 +1,46 @@
+name: Validate Agentic Workflows
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/*.md'
+      - '.github/workflows/*.lock.yml'
+      - '.github/aw/**'
+      - 'aw.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/*.md'
+      - '.github/workflows/*.lock.yml'
+      - '.github/aw/**'
+      - 'aw.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned GitHub Agentic Workflows CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh extension install github/gh-aw --pin v0.91.8
+
+      - name: Validate workflow sources
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh aw validate --strict
+
+      - name: Verify activated lock files when present
+        run: |
+          tracked_locks="$(git ls-files '.github/workflows/*.lock.yml' | wc -l | tr -d ' ')"
+          if [ "$tracked_locks" = "0" ]; then
+            echo "Source workflows are valid. Lock activation remains a maintainer-authenticated compile/commit step."
+            exit 0
+          fi
+          gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")'

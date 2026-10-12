@@ -1,0 +1,65 @@
+name: Agentic Telemetry Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow:
+        description: Optional agentic workflow name or filename
+        required: false
+        type: string
+      count:
+        description: Number of recent runs to analyze
+        required: false
+        default: '25'
+        type: string
+  schedule:
+    - cron: '15 5 * * 1'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPORT_COUNT: ${{ inputs.count || '25' }}
+      REPORT_WORKFLOW: ${{ inputs.workflow || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned GitHub Agentic Workflows CLI
+        run: gh extension install github/gh-aw --pin v0.91.8
+
+      - name: Collect recent agentic telemetry
+        run: |
+          mkdir -p telemetry-out
+          if [ -n "$REPORT_WORKFLOW" ]; then
+            gh aw logs "$REPORT_WORKFLOW" --count "$REPORT_COUNT" --json > telemetry-out/runs.json
+            gh aw logs "$REPORT_WORKFLOW" --count "$REPORT_COUNT" --format markdown > telemetry-out/report.md
+          else
+            gh aw logs --count "$REPORT_COUNT" --json > telemetry-out/runs.json
+            gh aw logs --count "$REPORT_COUNT" --format markdown > telemetry-out/report.md
+          fi
+
+      - name: Add QBS telemetry summary
+        run: |
+          {
+            echo "# QBS agentic delivery telemetry"
+            echo
+            echo "AI Credits (AIC) are the primary inference-spend metric; 1 AIC = USD 0.01."
+            echo
+            cat telemetry-out/report.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload telemetry evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qbs-agentic-telemetry-${{ github.run_id }}
+          path: telemetry-out/
+          retention-days: 30
+          if-no-files-found: error

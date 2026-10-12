@@ -1,0 +1,362 @@
+name: PR Preview Environment
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  PREVIEW_ENV: pr-${{ github.event.pull_request.number }}
+  TF_IN_AUTOMATION: true
+
+jobs:
+  verify:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.action != 'closed' &&
+      !(github.event.action == 'unlabeled' && github.event.label.name == 'preview') &&
+      contains(github.event.pull_request.labels.*.name, 'preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout pull request without cloud credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup .NET
+        if: ${{ hashFiles('src/backend/**/*.csproj') != '' }}
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build and test backend
+        if: ${{ hashFiles('src/backend/**/*.csproj') != '' }}
+        working-directory: src/backend
+        run: |
+          dotnet restore
+          dotnet build --no-restore -c Release
+          dotnet test --no-build -c Release
+
+  infra:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      api_url: ${{ steps.infra.outputs.api_url }}
+      lambda_name: ${{ steps.infra.outputs.lambda_name }}
+      frontend_bucket: ${{ steps.infra.outputs.frontend_bucket }}
+      cloudfront_domain: ${{ steps.infra.outputs.cloudfront_domain }}
+      cloudfront_id: ${{ steps.infra.outputs.cloudfront_id }}
+
+    steps:
+      - name: Checkout trusted base-branch infrastructure
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Configure AWS preview credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: qbs-preview-infra-${{ github.run_id }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init and isolated workspace
+        working-directory: infra/terraform
+        run: |
+          set -euo pipefail
+          test -n "$TF_STATE_BUCKET" || { echo "TF_STATE_BUCKET repository variable is required" >&2; exit 1; }
+          test -n "$AWS_REGION" || { echo "AWS_REGION repository variable is required" >&2; exit 1; }
+
+          if grep -R --include='*.tf' -Eq 'backend[[:space:]]+"[^\"]+"' .; then
+            grep -R --include='*.tf' -Eq 'backend[[:space:]]+"s3"' . || {
+              echo "QBS preview workflow currently requires an S3 Terraform backend." >&2
+              exit 1
+            }
+          else
+            cat > qbs-preview-backend.tf <<'EOF'
+          terraform {
+            backend "s3" {}
+          }
+          EOF
+          fi
+
+          terraform init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=previews/terraform.tfstate" \
+            -backend-config="region=$AWS_REGION"
+          terraform workspace select "$PREVIEW_ENV" || terraform workspace new "$PREVIEW_ENV"
+          terraform fmt -check
+          terraform validate
+
+      - name: Plan preview infrastructure from trusted base
+        working-directory: infra/terraform
+        run: |
+          terraform plan -input=false -out=preview.tfplan \
+            -var="project_name={project}" \
+            -var="environment=$PREVIEW_ENV" \
+            -var="aws_region=$AWS_REGION" \
+            -var="create_rds=false" \
+            -var="create_elasticache=false"
+
+      - name: Apply preview infrastructure
+        working-directory: infra/terraform
+        run: terraform apply -input=false -auto-approve preview.tfplan
+
+      - name: Capture preview infrastructure outputs
+        id: infra
+        working-directory: infra/terraform
+        run: |
+          echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+          echo "lambda_name=$(terraform output -raw lambda_function_name)" >> "$GITHUB_OUTPUT"
+          echo "frontend_bucket=$(terraform output -raw frontend_bucket)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_domain=$(terraform output -raw cloudfront_domain)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_id=$(terraform output -raw cloudfront_id)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [verify, infra]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout pull request without cloud credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Prepare artifact directories
+        run: mkdir -p preview-artifacts/backend preview-artifacts/frontend
+
+      - name: Setup .NET
+        if: ${{ hashFiles('src/backend/**/*.csproj') != '' }}
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish backend artifact
+        if: ${{ hashFiles('src/backend/**/*.csproj') != '' }}
+        working-directory: src/backend
+        run: |
+          dotnet publish {Project}.API/{Project}.API.csproj \
+            -c Release -r linux-x64 --self-contained false \
+            -o "${RUNNER_TEMP}/lambda-publish"
+          cd "${RUNNER_TEMP}/lambda-publish"
+          zip -qr "${GITHUB_WORKSPACE}/preview-artifacts/backend/lambda.zip" .
+
+      - name: Setup Node
+        if: ${{ hashFiles('src/frontend/package.json') != '' }}
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+
+      - name: Build frontend artifact without cloud credentials
+        if: ${{ hashFiles('src/frontend/package.json') != '' }}
+        working-directory: src/frontend
+        env:
+          VITE_API_URL: ${{ needs.infra.outputs.api_url }}
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+            pnpm build
+          elif [ -f package-lock.json ]; then
+            npm ci
+            npm run build
+          else
+            npm install
+            npm run build
+          fi
+          cp -R dist/. "${GITHUB_WORKSPACE}/preview-artifacts/frontend/"
+
+      - name: Add artifact markers
+        run: |
+          touch preview-artifacts/backend/.qbs-preview-artifact
+          touch preview-artifacts/frontend/.qbs-preview-artifact
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: preview-backend-${{ github.event.pull_request.number }}
+          path: preview-artifacts/backend/
+          include-hidden-files: true
+          retention-days: 1
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: preview-frontend-${{ github.event.pull_request.number }}
+          path: preview-artifacts/frontend/
+          include-hidden-files: true
+          retention-days: 1
+
+  publish:
+    needs: [infra, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Download backend artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: preview-backend-${{ github.event.pull_request.number }}
+          path: preview-artifacts/backend
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: preview-frontend-${{ github.event.pull_request.number }}
+          path: preview-artifacts/frontend
+
+      - name: Configure AWS preview credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: qbs-preview-publish-${{ github.run_id }}
+
+      - name: Publish backend preview
+        if: ${{ hashFiles('preview-artifacts/backend/lambda.zip') != '' }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ needs.infra.outputs.lambda_name }}" \
+            --zip-file "fileb://${GITHUB_WORKSPACE}/preview-artifacts/backend/lambda.zip"
+          aws lambda wait function-updated-v2 \
+            --function-name "${{ needs.infra.outputs.lambda_name }}"
+
+      - name: Publish frontend preview
+        if: ${{ hashFiles('preview-artifacts/frontend/index.html') != '' }}
+        run: |
+          aws s3 sync preview-artifacts/frontend/ "s3://${{ needs.infra.outputs.frontend_bucket }}/" \
+            --delete --exclude '.qbs-preview-artifact'
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ needs.infra.outputs.cloudfront_id }}" \
+            --paths '/*' >/dev/null
+
+      - name: Smoke check preview API
+        if: ${{ hashFiles('preview-artifacts/backend/lambda.zip') != '' }}
+        env:
+          API_URL: ${{ needs.infra.outputs.api_url }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 15 "$API_URL/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Preview API health check failed" >&2
+          exit 1
+
+      - name: Publish preview summary
+        env:
+          PREVIEW_DOMAIN: ${{ needs.infra.outputs.cloudfront_domain }}
+          API_URL: ${{ needs.infra.outputs.api_url }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREVIEW_URL="https://${PREVIEW_DOMAIN}"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## PR preview
+          - App: $PREVIEW_URL
+          - API: $API_URL
+          - Environment: $PREVIEW_ENV
+          - Infrastructure source: trusted base branch
+          - RDS/Redis: disabled by default
+          EOF
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --edit-last --create-if-none \
+            --body "<!-- qbs-preview -->\n### QBS preview environment\n\n- App: $PREVIEW_URL\n- API: $API_URL\n- Environment: \`$PREVIEW_ENV\`\n- Infrastructure: trusted base-branch Terraform\n\nThis disposable environment is destroyed when the \`preview\` label is removed or the PR is closed."
+
+  destroy:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'closed' ||
+       (github.event.action == 'unlabeled' && github.event.label.name == 'preview'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout trusted base-branch infrastructure
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Configure AWS preview credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: qbs-preview-destroy-${{ github.run_id }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Destroy isolated preview workspace
+        working-directory: infra/terraform
+        run: |
+          set -euo pipefail
+          test -n "$TF_STATE_BUCKET" || { echo "TF_STATE_BUCKET repository variable is required" >&2; exit 1; }
+          test -n "$AWS_REGION" || { echo "AWS_REGION repository variable is required" >&2; exit 1; }
+
+          if grep -R --include='*.tf' -Eq 'backend[[:space:]]+"[^\"]+"' .; then
+            grep -R --include='*.tf' -Eq 'backend[[:space:]]+"s3"' . || {
+              echo "QBS preview workflow currently requires an S3 Terraform backend." >&2
+              exit 1
+            }
+          else
+            cat > qbs-preview-backend.tf <<'EOF'
+          terraform {
+            backend "s3" {}
+          }
+          EOF
+          fi
+
+          terraform init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=previews/terraform.tfstate" \
+            -backend-config="region=$AWS_REGION"
+
+          if ! terraform workspace select "$PREVIEW_ENV"; then
+            echo "Preview workspace $PREVIEW_ENV does not exist; nothing to destroy."
+            exit 0
+          fi
+
+          terraform destroy -input=false -auto-approve \
+            -var="project_name={project}" \
+            -var="environment=$PREVIEW_ENV" \
+            -var="aws_region=$AWS_REGION" \
+            -var="create_rds=false" \
+            -var="create_elasticache=false"
+
+          terraform workspace select default
+          terraform workspace delete "$PREVIEW_ENV"

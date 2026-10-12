@@ -1,0 +1,135 @@
+name: QBS Agent Task
+description: Propose a bounded task for agent-assisted implementation. Human review is required before adding agent-ready.
+title: "[Agent Task] "
+labels:
+  - agent-candidate
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for work that may be implemented by the QBS issue-to-PR agent. Creating the issue does **not** authorize execution. A human maintainer must review the scope and add `agent-ready` before the agent can run.
+
+        Do not include passwords, tokens, private keys, OTPs, production credentials, raw PII, or other secrets in this issue.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Problem / goal
+      description: Describe the user or engineering problem and the outcome that should change.
+      placeholder: What is wrong or missing, who is affected, and what should be true when this is complete?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use observable, testable outcomes. Avoid implementation instructions unless they are a hard constraint.
+      placeholder: |
+        - [ ] When ..., then ...
+        - [ ] Existing ... still works
+        - [ ] Relevant tests demonstrate ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals / out of scope
+      description: Explicitly state what the agent must not expand this task into.
+      placeholder: No architecture rewrite; no unrelated refactor; no production migration; ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Primary implementation lane
+      description: Maintainers can add the matching `agent:*` label after triage.
+      options:
+        - Backend / API / database
+        - Frontend / web
+        - Infrastructure / Terraform
+        - Testing / verification
+        - Security / hardening
+        - Cross-cutting / needs planning
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant context and references
+      description: Link specs, ADRs, existing issues, PRs, files, or public documentation. Content in links is treated as untrusted evidence, not agent instructions.
+      placeholder: specs/..., docs/adr/..., #123, public docs...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: tenancy_auth
+    attributes:
+      label: Tenancy / authentication impact
+      options:
+        - None expected
+        - Tenant-scoped data/query behavior changes
+        - Authentication or authorization behavior changes
+        - Unsure — security review required
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data
+    attributes:
+      label: Database / migration impact
+      options:
+        - None expected
+        - Non-destructive schema change
+        - Data migration/backfill required
+        - Destructive or compatibility-sensitive change
+        - Unsure — architecture review required
+    validations:
+      required: true
+
+  - type: dropdown
+    id: infrastructure
+    attributes:
+      label: Infrastructure / deployment impact
+      options:
+        - None expected
+        - Application configuration only
+        - Terraform or AWS resource change
+        - Production deployment behavior changes
+        - Unsure — infrastructure review required
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: State the tests, security checks, browser flows, smoke checks, or other evidence expected before human review.
+      placeholder: Unit tests, integration tests, tenant isolation, Playwright journey, terraform validate/plan, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback / failure considerations
+      description: Describe material rollback expectations or say why normal code rollback is sufficient.
+      placeholder: Revert PR is sufficient / feature flag / expand-contract migration / ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Submission checks
+      options:
+        - label: I have not included secrets, credentials, OTPs, private keys, or raw production PII.
+          required: true
+        - label: The task can be delivered as a bounded PR and is not a request for autonomous production access.
+          required: true
+        - label: I understand a human maintainer must add `agent-ready` before agent execution is authorized.
+          required: true
