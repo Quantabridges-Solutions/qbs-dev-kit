@@ -46,7 +46,6 @@ grep -q 'draft: true' .github/workflows/issue-to-pr.md || fail "agent-created PR
 grep -q 'protected-files: fallback-to-issue' .github/workflows/issue-to-pr.md || fail "protected-file fallback missing"
 grep -q 'graders:' .github/workflows/issue-to-pr.md || fail "runtime graders missing"
 grep -q 'evals:' .github/workflows/issue-to-pr.md || fail "runtime evals missing"
-grep -q 'AWS_PREVIEW_ROLE_ARN' .github/workflows/preview-environment.yml || fail "preview OIDC role missing"
 grep -q 'github/gh-aw-actions/\*' .github/dependabot.yml || fail "Dependabot must ignore gh-aw compiler-managed action pins"
 
 if grep -Eq 'gh aw compile[^\n]*--approve' .github/workflows/compile-agentic-workflows.yml; then
@@ -55,6 +54,15 @@ fi
 if grep -q 'contents: write' .github/workflows/compile-agentic-workflows.yml; then
   fail "Routine gh-aw compile CI must remain read-only for repository contents"
 fi
+
+PREVIEW=.github/workflows/preview-environment.yml
+grep -q 'AWS_PREVIEW_ROLE_ARN' "$PREVIEW" || fail "preview OIDC role missing"
+grep -q 'head.repo.full_name == github.repository' "$PREVIEW" || fail "preview must reject fork execution"
+grep -q 'Checkout trusted base-branch infrastructure' "$PREVIEW" || fail "preview Terraform must come from trusted base"
+grep -q 'Checkout pull request without cloud credentials' "$PREVIEW" || fail "PR build must be isolated from cloud credentials"
+grep -q '^  infra:' "$PREVIEW" || fail "preview infra trust zone missing"
+grep -q '^  build:' "$PREVIEW" || fail "preview build trust zone missing"
+grep -q '^  publish:' "$PREVIEW" || fail "preview publish trust zone missing"
 
 if [[ -f .github/workflows/deploy-api-lambda.yml ]]; then
   grep -q 'id-token: write' .github/workflows/deploy-api-lambda.yml || fail "API deploy is not OIDC-enabled"
