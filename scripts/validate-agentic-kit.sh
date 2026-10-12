@@ -89,11 +89,20 @@ if [[ -f templates/github-actions/deploy-api-lambda.yml ]]; then
   require_pattern templates/github-actions/deploy-api-lambda.yml 'role-to-assume'
 fi
 
-# Preview infrastructure must use OIDC and disposable pr-N environments; production is not a preview target.
-reject_pattern templates/github-actions/preview-environment.yml 'AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY'
-require_pattern templates/github-actions/preview-environment.yml 'AWS_PREVIEW_ROLE_ARN'
-require_pattern templates/github-actions/preview-environment.yml 'PREVIEW_ENV: pr-'
-require_pattern templates/github-actions/preview-environment.yml 'terraform destroy'
+# Preview infrastructure must use OIDC and disposable pr-N environments, while
+# untrusted PR build scripts remain separated from cloud credentials.
+PREVIEW=templates/github-actions/preview-environment.yml
+reject_pattern "$PREVIEW" 'AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY'
+require_pattern "$PREVIEW" 'AWS_PREVIEW_ROLE_ARN'
+require_pattern "$PREVIEW" 'PREVIEW_ENV: pr-'
+require_pattern "$PREVIEW" 'terraform destroy'
+require_pattern "$PREVIEW" 'head\.repo\.full_name == github\.repository'
+require_pattern "$PREVIEW" 'Checkout trusted base-branch infrastructure'
+require_pattern "$PREVIEW" 'Checkout pull request without cloud credentials'
+require_pattern "$PREVIEW" '^  infra:'
+require_pattern "$PREVIEW" '^  build:'
+require_pattern "$PREVIEW" '^  publish:'
+require_pattern "$PREVIEW" 'QBS preview workflow currently requires an S3 Terraform backend'
 require_pattern templates/terraform/variables.tf '\^pr-\[0-9\]\+\$'
 
 # Agent hooks protecting secrets must fail closed.
