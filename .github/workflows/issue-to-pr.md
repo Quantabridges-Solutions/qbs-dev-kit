@@ -11,6 +11,8 @@ on:
 
 engine: copilot
 strict: true
+max-ai-credits: 250
+max-daily-ai-credits: 2500
 
 graders: {}
 
@@ -55,7 +57,9 @@ tools:
     - "bash scripts/validate-project-governance.sh"
 
 safe-outputs:
-  threat-detection: true
+  threat-detection:
+    max-ai-credits: 75
+    continue-on-error: false
   create-pull-request:
     title-prefix: "[agent] "
     labels: [agent-generated, needs-human-review]
