@@ -18,13 +18,17 @@ TO_PASCAL() {
 PASCAL="$(TO_PASCAL "$PROJECT_NAME")"
 
 mkdir -p "$TARGET/.github/agents" "$TARGET/.github/instructions" "$TARGET/.github/workflows" \
+  "$TARGET/.github/ISSUE_TEMPLATE" "$TARGET/scripts" \
   "$TARGET/policies" "$TARGET/evals/security" "$TARGET/evals/governance" "$TARGET/config/agentic"
 
 cp "$ROOT/.github/agents/"*.agent.md "$TARGET/.github/agents/"
 cp "$ROOT/.github/copilot-instructions.md" "$TARGET/.github/copilot-instructions.md"
 cp "$ROOT/.github/PULL_REQUEST_TEMPLATE.md" "$TARGET/.github/PULL_REQUEST_TEMPLATE.md"
+cp "$ROOT/.github/ISSUE_TEMPLATE/agent-task.yml" "$TARGET/.github/ISSUE_TEMPLATE/agent-task.yml"
 cp "$ROOT/.github/instructions/"*.instructions.md "$TARGET/.github/instructions/"
 cp "$ROOT/templates/github/dependabot.yml" "$TARGET/.github/dependabot.yml"
+cp "$ROOT/scripts/setup-github-labels.sh" "$TARGET/scripts/setup-github-labels.sh"
+chmod +x "$TARGET/scripts/setup-github-labels.sh"
 cp "$ROOT/policies/"*.yaml "$TARGET/policies/"
 cp "$ROOT/evals/security/"*.yaml "$TARGET/evals/security/"
 cp "$ROOT/evals/governance/"*.yaml "$TARGET/evals/governance/"
@@ -91,6 +95,10 @@ cat > "$TARGET/AGENTIC_DELIVERY.md" <<'EOF'
 
 This project uses QBS agent permission, tool-risk, runtime evaluation and production-approval policies.
 
+## Intake and authorization
+
+Use `.github/ISSUE_TEMPLATE/agent-task.yml` for bounded agent candidates. New issues start as `agent-candidate`; a human maintainer must explicitly add `agent-ready` before the issue-to-PR agent is authorized. Run `./scripts/setup-github-labels.sh owner/repo` once to create the standard label set.
+
 ## Runtime
 
 Agentic source workflows live as `.github/workflows/*.md` and are compiled/hardened with the pinned GitHub Agentic Workflows (`gh-aw`) compiler. Do not hand-edit generated `*.lock.yml` files.
@@ -131,4 +139,4 @@ fi
 
 echo "Applied QBS agentic runtime foundation to $TARGET"
 echo "Project: $PROJECT_NAME | .NET architecture: $DOTNET_ARCH | gh-aw locks: $LOCK_STATUS"
-echo "Next: review/commit generated lock files, configure production reviewers, AWS OIDC roles/state, and optional QBS Automation GitHub App."
+echo "Next: run ./scripts/setup-github-labels.sh owner/repo, review/commit generated lock files, configure production reviewers, AWS OIDC roles/state, and optional QBS Automation GitHub App."
