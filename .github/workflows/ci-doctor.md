@@ -15,6 +15,8 @@ on:
 if: github.event.workflow_run.conclusion == 'failure'
 engine: copilot
 strict: true
+max-ai-credits: 75
+max-daily-ai-credits: 750
 
 graders: {}
 
@@ -38,7 +40,9 @@ tools:
     toolsets: [repos, actions, issues, pull_requests]
 
 safe-outputs:
-  threat-detection: true
+  threat-detection:
+    max-ai-credits: 40
+    continue-on-error: false
   create-issue:
     title-prefix: "[ci-doctor] "
     labels: [ci-failure, agent-generated]
