@@ -43,12 +43,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh aw compile --strict --yamllint
+          # One-time v3.1 baseline approval: QBS_AUTOMATION_APP_PRIVATE_KEY is an intentional
+          # optional GitHub App secret used only to mint short-lived safe-output credentials.
+          gh aw compile --strict --yamllint --approve
           gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")'
 
       - name: Commit generated lock files
         run: |
-          if git diff --quiet -- .github/workflows .github/aw; then
+          if [ -z "$(git status --porcelain -- .github/workflows .github/aw)" ]; then
             echo "Agentic workflow lock files are already current."
             exit 0
           fi
