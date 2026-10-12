@@ -7,7 +7,7 @@ labels: [agentic, delivery, implementation]
 on:
   label_command:
     name: agent-ready
-    events: issue
+    events: issues
 
 engine: copilot
 strict: true
