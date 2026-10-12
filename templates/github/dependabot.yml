@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, security]
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /src/backend
+    schedule:
+      interval: weekly
+    labels: [dependencies]
+    groups:
+      dotnet-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /src/frontend
+    schedule:
+      interval: weekly
+    labels: [dependencies]
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /src/mobile
+    schedule:
+      interval: weekly
+    labels: [dependencies]
+    groups:
+      mobile-minor-patch:
+        update-types: [minor, patch]
