@@ -12,6 +12,7 @@ on:
       - "Terraform Plan"
       - "Validate Agentic Workflows"
     types: [completed]
+    branches: [main]
 
 if: github.event.workflow_run.conclusion == 'failure'
 engine: copilot
