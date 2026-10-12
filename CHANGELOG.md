@@ -2,6 +2,35 @@
 
 All notable QBS Dev Kit changes should be recorded here. Versions follow Semantic Versioning.
 
+## 3.1.0 — 2026-10-12
+
+### Added
+
+- Native GitHub Agentic Workflows (`gh-aw`) runtime with a pinned compiler and CI validation.
+- `agent-ready` issue-to-draft-PR workflow with protected-file fallback, bounded shell commands and threat detection.
+- Independent read-only agentic PR reviewer.
+- CI Doctor workflow that turns novel failed-build evidence into deduplicated diagnostic issues.
+- Native per-run LLM evals and deterministic trajectory graders for implementation, review and CI-diagnostic agents.
+- Explicit per-run/daily AI Credit budgets and separate threat-detection budgets.
+- Weekly/manual agentic telemetry report for AIC spend, model routing, duration, evals and grader metrics.
+- Disposable AWS `pr-N` preview environments created via a `preview` label and destroyed on unlabel/PR close.
+- Preview Terraform support for `dev` and `pr-N` environments with RDS/Redis disabled by default.
+- Extended agent-run schema for model/provider, AIC/token usage, evals, graders, safe outputs and trajectory metrics.
+- Reusable CI Doctor template for generated QBS projects.
+
+### Changed
+
+- `qbs.project.yaml` schema moves to version 2 and declares the agentic runtime, telemetry and preview lifecycle.
+- Agentic foundation overlay now installs runtime workflows, compiler/validator, telemetry and preview infrastructure.
+- Plugin metadata bumped to v3.1.0.
+
+### Security
+
+- Agent-generated code remains draft-only and human-reviewed.
+- Agentic workflow writes go through gh-aw safe outputs and protected-file controls rather than direct repository write permission.
+- Agent-generated PRs may use an optional GitHub App to mint short-lived credentials; long-lived AWS credentials remain prohibited.
+- Preview infrastructure uses a separate OIDC role and isolated Terraform workspace/state path.
+
 ## 3.0.0 — 2026-10-12
 
 ### Added
