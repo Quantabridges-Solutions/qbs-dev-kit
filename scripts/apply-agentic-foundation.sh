@@ -112,6 +112,23 @@ Production deployment, production database migration, destructive infrastructure
 Required PR evidence should include build/tests, security/dependency scans, tenant-isolation evidence where relevant, migration impact, infrastructure impact, rollout/rollback notes, eval evidence and any required approval boundary.
 EOF
 
+# Compile the executable gh-aw lock files locally when the caller already has the
+# pinned extension available. GitHub Actions intentionally validates/exports locks
+# but does not receive permission to rewrite workflow files.
+LOCK_STATUS="not-compiled"
+if command -v gh >/dev/null 2>&1 && gh aw --help >/dev/null 2>&1; then
+  if (cd "$TARGET" && gh aw compile --strict --yamllint); then
+    LOCK_STATUS="compiled"
+  else
+    echo "WARNING: gh-aw source files were installed, but local lock compilation failed." >&2
+    echo "Run: cd '$TARGET' && gh aw compile --strict --yamllint" >&2
+  fi
+else
+  echo "NOTE: gh-aw is not available in this shell. Install the pinned extension, compile, review and commit lock files:" >&2
+  echo "  gh extension install github/gh-aw --pin v0.91.8" >&2
+  echo "  cd '$TARGET' && gh aw compile --strict --yamllint" >&2
+fi
+
 echo "Applied QBS agentic runtime foundation to $TARGET"
-echo "Project: $PROJECT_NAME | .NET architecture: $DOTNET_ARCH"
-echo "Next: configure GitHub production reviewers, AWS OIDC roles/state, optional QBS Automation GitHub App, then let the compile workflow generate gh-aw lock files."
+echo "Project: $PROJECT_NAME | .NET architecture: $DOTNET_ARCH | gh-aw locks: $LOCK_STATUS"
+echo "Next: review/commit generated lock files, configure production reviewers, AWS OIDC roles/state, and optional QBS Automation GitHub App."
