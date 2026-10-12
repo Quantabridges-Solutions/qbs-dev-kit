@@ -39,16 +39,25 @@ Agentic source workflows are Markdown files under `.github/workflows/`:
 
 They are **not** executed directly by GitHub Actions. The pinned `gh-aw` compiler generates hardened `*.lock.yml` workflows. Do not hand-edit generated lock files.
 
-`compile-agentic-workflows.yml` compiles same-repository feature branches/PRs and commits the lock files back to the source branch. `validate-agentic-workflows.yml` rejects invalid or stale source/lock pairs.
+`compile-agentic-workflows.yml` compiles sources in a read-only CI job and uploads the resulting lock files as review evidence. It intentionally does **not** receive a credential capable of rewriting files under `.github/workflows/`. GitHub requires separate Workflows-write authority for that operation, and QBS keeps that authority at the maintainer boundary rather than granting it to routine CI.
 
-Local maintainer commands:
+For an activated repository, a maintainer runs the pinned compiler locally, reviews the security-sensitive safe-update warnings/diff, and commits both source and generated files. `validate-agentic-workflows.yml` always validates source and, once lock files are tracked, also requires the committed locks to be current.
+
+The QBS foundation installer automatically attempts this local compilation when `gh-aw` is already available in the caller's authenticated shell.
+
+Maintainer commands:
 
 ```bash
 gh extension install github/gh-aw --pin v0.91.8
 gh aw compile --strict --yamllint
+git add .github/workflows/*.md .github/workflows/*.lock.yml .github/aw/actions-lock.json
+git diff --cached
+git commit -m "chore: compile agentic workflow locks"
 gh aw validate --strict
 gh aw list --json
 ```
+
+If `gh-aw` reports a safe-update warning for a newly introduced secret, action, redirect or trigger escalation, review that change explicitly. Use `--approve` only for the reviewed baseline/change; never bake `--approve` into normal CI.
 
 ## Issue -> draft PR
 
@@ -75,7 +84,7 @@ Set:
 - repository variable `QBS_AUTOMATION_APP_ID`
 - repository secret `QBS_AUTOMATION_APP_PRIVATE_KEY`
 
-Recommended app permissions should be the minimum required for the configured safe outputs; typically repository Contents write for the automation branch plus Pull Requests write and Issues write where fallback/comment operations are enabled. Do not grant administration, environment deployment or organization-wide permissions to the implementation app.
+Recommended app permissions should be the minimum required for the configured safe outputs; typically repository Contents write for the automation branch plus Pull Requests write and Issues write where fallback/comment operations are enabled. Do not grant administration, environment deployment, workflow-management or organization-wide permissions to the implementation app.
 
 The workflow uses `ignore-if-missing: true`, so repos can adopt v3.1 before the app is configured, but CI-trigger behavior should be verified before enabling autonomous issue execution broadly.
 
@@ -165,7 +174,7 @@ An organization can therefore freeze agent PR creation or tighten budget caps wi
 
 Roll out in stages:
 
-1. **Observe** — enable PR reviewer + telemetry.
+1. **Observe** — activate lock files for PR reviewer + telemetry, then inspect results.
 2. **Assist** — allow `agent-ready` only for a small maintained issue set; keep all outputs draft.
 3. **Scale** — expand issue categories after eval/CI data is consistently healthy.
 4. **Never remove the production boundary** — merging and production side effects remain governed human actions unless a separately approved policy explicitly changes that boundary.
