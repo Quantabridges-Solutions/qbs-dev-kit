@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, security]
+    ignore:
+      # gh-aw generates and owns action pins inside compiled *.lock.yml workflows.
+      # Upgrade gh-aw and recompile instead of allowing direct edits to generated locks.
+      - dependency-name: "github/gh-aw-actions/*"
+    groups:
+      github-actions:
+        patterns: ["*"]
