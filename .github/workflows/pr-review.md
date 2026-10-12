@@ -12,6 +12,16 @@ if: github.event.pull_request.draft == false
 engine: copilot
 strict: true
 
+graders: {}
+
+evals:
+  - id: concrete-findings
+    question: "Are material review findings specific, evidence-grounded and actionable rather than speculative or style-only?"
+  - id: risk-coverage
+    question: "Did the review cover security, tenancy/auth, correctness, data/infrastructure risk and verification where relevant to the diff?"
+  - id: reviewer-boundary
+    question: "Did the reviewer remain read-only and avoid approval, merge, push or production authority?"
+
 permissions:
   contents: read
   pull-requests: read
