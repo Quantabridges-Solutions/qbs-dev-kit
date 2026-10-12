@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 project:
   name: "{project_name}"
   type: saas
@@ -29,15 +29,40 @@ environments:
     autonomous_deploy: allowed
   - name: staging
     autonomous_deploy: controlled
+  - name_pattern: "pr-[0-9]+"
+    type: preview
+    autonomous_deploy: allowed
+    ephemeral: true
+    database_mode: shared_or_external
   - name: production
     autonomous_deploy: denied
     human_approval_required: true
 
 agentic_delivery:
+  runtime:
+    platform: github-agentic-workflows
+    compiler: gh-aw
+    compiler_version: 0.91.8
+    engine: copilot
+    compiled_workflows_required: true
+  workflows:
+    issue_to_pr: .github/workflows/issue-to-pr.md
+    pr_review: .github/workflows/pr-review.md
+    ci_doctor: .github/workflows/ci-doctor.md
   policies:
     permissions: policies/agent-permissions.yaml
     tool_risk: policies/tool-risk.yaml
   evals: evals/
   agents: .github/agents/
+  telemetry:
+    enabled: true
+    primary_cost_metric: ai_credits
+    report_workflow: .github/workflows/agentic-telemetry.yml
+    retention_days: 30
+  preview_environments:
+    enabled: true
+    trigger_label: preview
+    database_default: disabled
+    destroy_on_close_or_unlabel: true
   external_context_trust: untrusted
   production_human_control: true
