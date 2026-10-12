@@ -8,6 +8,8 @@ All notable QBS Dev Kit changes should be recorded here. Versions follow Semanti
 
 - Native GitHub Agentic Workflows (`gh-aw`) runtime with a pinned compiler and CI validation.
 - `agent-ready` issue-to-draft-PR workflow with protected-file fallback, bounded shell commands and threat detection.
+- Structured QBS Agent Task Issue Form that starts work as `agent-candidate` and requires explicit human promotion to `agent-ready`.
+- Standard agentic-delivery label bootstrap for candidate/authorization, specialist routing, human review, previews and CI diagnostics.
 - Independent read-only agentic PR reviewer.
 - CI Doctor workflow that turns novel failed-build evidence into deduplicated diagnostic issues.
 - Native per-run LLM evals and deterministic trajectory graders for implementation, review and CI-diagnostic agents.
@@ -21,13 +23,18 @@ All notable QBS Dev Kit changes should be recorded here. Versions follow Semanti
 ### Changed
 
 - `qbs.project.yaml` schema moves to version 2 and declares the agentic runtime, telemetry and preview lifecycle.
-- Agentic foundation overlay now installs runtime workflows, compiler/validator, telemetry and preview infrastructure.
+- Agentic foundation overlay now installs runtime workflows, compiler/validator, telemetry, preview infrastructure, agent-task intake and label bootstrap.
+- gh-aw compilation in routine CI is read-only: it validates/exports generated locks but does not receive workflow-rewrite authority; maintainers activate reviewed locks from an authenticated shell.
+- CODEOWNERS now explicitly protects agentic workflows, issue intake, schemas, runtime templates and governance/bootstrap scripts.
+- Dependabot ignores `github/gh-aw-actions/*` generated action pins; those pins are upgraded by updating gh-aw and recompiling.
 - Plugin metadata bumped to v3.1.0.
 
 ### Security
 
 - Agent-generated code remains draft-only and human-reviewed.
-- Agentic workflow writes go through gh-aw safe outputs and protected-file controls rather than direct repository write permission.
+- Candidate issues are not executable until a human explicitly adds `agent-ready`.
+- Agentic workflow writes go through gh-aw safe outputs and protected-file controls rather than direct model write permission.
+- Routine CI cannot auto-approve gh-aw safe-update escalations and is not granted workflow-file write authority.
 - Agent-generated PRs may use an optional GitHub App to mint short-lived credentials; long-lived AWS credentials remain prohibited.
 - Preview infrastructure uses a separate OIDC role and isolated Terraform workspace/state path.
 
