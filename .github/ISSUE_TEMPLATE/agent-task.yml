@@ -1,8 +1,9 @@
 name: QBS Agent Task
-about: Propose a bounded task for agent-assisted implementation. Human review is required before adding agent-ready.
+description: Propose a bounded task for agent-assisted implementation. Human review is required before adding agent-ready.
 title: "[Agent Task] "
 labels:
   - agent-candidate
+assignees: []
 body:
   - type: markdown
     attributes:
