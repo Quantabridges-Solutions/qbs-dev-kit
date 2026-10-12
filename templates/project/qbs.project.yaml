@@ -1,0 +1,43 @@
+schema_version: 1
+project:
+  name: "{project_name}"
+  type: saas
+  owner: Quantabridges-Solutions
+
+architecture:
+  backend: dotnet
+  backend_pattern: "{dotnet_arch}"
+  frontend: react
+  mobile: expo
+  database: postgresql
+  cache: redis
+  cloud: aws
+  infrastructure_as_code: terraform
+
+auth:
+  strategy: otp
+  web_token_storage: httponly_cookie
+  mobile_token_storage: secure_store
+
+tenancy:
+  enabled: true
+  discriminator: OrganizationId
+  source: trusted_server_context
+
+environments:
+  - name: dev
+    autonomous_deploy: allowed
+  - name: staging
+    autonomous_deploy: controlled
+  - name: production
+    autonomous_deploy: denied
+    human_approval_required: true
+
+agentic_delivery:
+  policies:
+    permissions: policies/agent-permissions.yaml
+    tool_risk: policies/tool-risk.yaml
+  evals: evals/
+  agents: .github/agents/
+  external_context_trust: untrusted
+  production_human_control: true
