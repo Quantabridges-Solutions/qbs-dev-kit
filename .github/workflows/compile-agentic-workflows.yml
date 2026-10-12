@@ -6,24 +6,33 @@ on:
     paths:
       - '.github/workflows/*.md'
       - 'aw.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/*.md'
+      - 'aw.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: gh-aw-compile-${{ github.ref }}
+  group: gh-aw-compile-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   compile:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout source branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install pinned GitHub Agentic Workflows CLI
         env:
@@ -47,4 +56,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/*.lock.yml .github/aw 2>/dev/null || true
           git commit -m "chore: compile agentic workflow lock files"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
