@@ -9,6 +9,9 @@ on:
     name: agent-ready
     events: issues
 
+concurrency:
+  job-discriminator: ${{ github.event.issue.number || github.run_id }}
+
 engine: copilot
 strict: true
 max-ai-credits: 250
