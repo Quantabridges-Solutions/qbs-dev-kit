@@ -1,6 +1,6 @@
 ---
 name: scaffold-saas-project
-description: "Scaffold a QBS SaaS project (API + React + Expo + Terraform). Ask ONE question (which components?) unless the user already specified them, then run scripts/scaffold.sh and language toolchains with no further questions. Defaults: .NET 8, React+Vite, Expo, Postgres, eu-west-1, Traditional Services. Use when the user says new project, scaffold, bootstrap, or start a new app."
+description: "Scaffold a governed QBS SaaS project (API + React + Expo + Terraform + agentic delivery controls). Ask ONE question (which components?) unless the user already specified them, then run scripts/scaffold.sh, apply the agentic foundation, and run language toolchains with no further questions. Defaults: .NET 8, React+Vite, Expo, Postgres, eu-west-1, Traditional Services. Use when the user says new project, scaffold, bootstrap, or start a new app."
 license: CC-BY-ND-4.0
 ---
 
@@ -10,10 +10,11 @@ Read this file fully. Ask the ONE question in Step 1 only if components were not
 
 ## Defaults
 
-- AWS region: `eu-west-1` (unless the user named another)
-- Components: `all` if they press Enter / omit
+- AWS region: `eu-west-1` unless the user named another
+- Components: `all` if omitted
 - .NET: Traditional Services unless they said CQRS / MediatR
 - Kit checkout: `QBS_KIT_ROOT` or `~/.config/qbs-dev-kit/kit-root` (written by `install.sh`)
+- Production changes remain human-controlled
 
 ## Step 1 — components
 
@@ -25,7 +26,7 @@ Then continue immediately.
 
 ## Step 2 — copy kit files
 
-Run the bundled script from this skill directory (works after install.sh):
+Run the bundled script from this skill directory:
 
 ```bash
 SKILL_DIR="$HOME/.cursor/skills/scaffold-saas-project"
@@ -38,13 +39,18 @@ bash "$SKILL_DIR/scripts/scaffold.sh" \
   --dotnet "{services|cqrs}" \
   --region "{aws_region}" \
   --out "{project_root}"
+
+bash "$QBS_KIT_ROOT/scripts/apply-agentic-foundation.sh" \
+  "{project_root}" "{project_name}" "{services|cqrs}"
 ```
 
-If the script cannot find the kit, set `QBS_KIT_ROOT` to the qbs-dev-kit git checkout and re-run.
+If the script cannot find the kit, set `QBS_KIT_ROOT` to the qbs-dev-kit checkout and re-run.
 
-## Step 3 — language toolchains (after the script)
+The agentic foundation adds specialist agent profiles, permission/tool-risk policies, critical agent eval scenarios, Copilot instructions, an approved MCP policy, `qbs.project.yaml`, CodeQL/dependency-review workflows, and approval-gated database migration.
 
-PascalCase `{project_name}` → `{PascalName}` (e.g. `service-hub` → `ServiceHub`).
+## Step 3 — language toolchains
+
+PascalCase `{project_name}` → `{PascalName}`.
 
 ### Backend — if NEED_API
 
@@ -89,16 +95,28 @@ npx create-expo-app@latest . --template blank-typescript
 cd ../..
 ```
 
-## Step 4 — git
+## Step 4 — verify governance
+
+```bash
+bash "$QBS_KIT_ROOT/scripts/validate-agentic-kit.sh"
+```
+
+For the generated project, confirm the following before enabling production delivery:
+- GitHub `production` Environment has required reviewers.
+- `AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, and deploy target names are GitHub variables.
+- AWS trusts the repository/environment through GitHub OIDC.
+- `DATABASE_CONNECTION_STRING` is an environment-scoped secret used only by the manual migration workflow.
+
+## Step 5 — git
 
 ```bash
 git init
 git add .
-git commit -m "chore: initial project scaffold"
+git commit -m "chore: initial governed project scaffold"
 ```
 
 Skip if the directory is already a git repo with commits.
 
 ## Confirm
 
-List what was created. Next steps for the user: fill `.env` from `.env.example`, `docker compose up`, run API/frontend/mobile, set GitHub secrets from `GITHUB_SECRETS.md`.
+List what was created and the verification results. Next steps: fill `.env` from `.env.example`, run local services, configure GitHub environments/OIDC, and keep production side effects behind human approval.
