@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qbs-tech.com/schemas/agent-run.schema.json",
+  "title": "QBS Agent Run",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "agent", "task", "startedAt", "outcome"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "task": { "type": "string", "minLength": 1 },
+    "model": { "type": "string" },
+    "policyVersion": { "type": "string" },
+    "promptVersion": { "type": "string" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "filesChanged": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "toolsUsed": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "skipped"] },
+          "evidence": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "status"],
+        "properties": {
+          "action": { "type": "string" },
+          "status": { "enum": ["not_required", "requested", "approved", "denied"] },
+          "approver": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "outcome": { "enum": ["passed", "failed", "blocked", "cancelled"] },
+    "residualRisk": { "type": "string" }
+  },
+  "additionalProperties": false
+}

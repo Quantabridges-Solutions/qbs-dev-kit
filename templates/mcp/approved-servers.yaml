@@ -1,0 +1,51 @@
+version: 1
+default_policy: deny
+
+servers:
+  github:
+    status: approved
+    environment: [development, staging, production]
+    production_mode: read_only_by_default
+    permitted_capabilities:
+      - repository_read
+      - code_search
+      - issue_read
+      - pull_request_read
+    write_capabilities:
+      require_explicit_task_intent: true
+      require_policy_gate: true
+  playwright:
+    status: approved
+    environment: [development, staging]
+    permitted_capabilities:
+      - browser_navigation
+      - browser_assertions
+      - screenshots
+    prohibited:
+      - entering_production_secrets
+      - irreversible_external_purchases
+  postgres-readonly:
+    status: conditional
+    environment: [development, staging, production]
+    production_mode: read_only
+    credentials: scoped_short_lived
+    prohibited:
+      - ddl
+      - dml
+      - secret_reads
+  aws-readonly:
+    status: conditional
+    environment: [development, staging, production]
+    production_mode: read_only
+    credentials: oidc_or_short_lived
+    prohibited:
+      - resource_mutation
+      - iam_mutation
+      - secret_value_reads
+
+requirements:
+  third_party_server_review: required
+  least_privilege_tools: required
+  scoped_credentials: required
+  audit_logging: required
+  prompt_injection_boundary: required

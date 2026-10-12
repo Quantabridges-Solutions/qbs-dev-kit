@@ -1,0 +1,64 @@
+version: 1
+principles:
+  - least_privilege
+  - human_controlled_production
+  - untrusted_external_context
+  - deterministic_verification
+
+risk_levels:
+  low:
+    approval: automatic
+  medium:
+    approval: policy_gate
+  high:
+    approval: human
+  critical:
+    approval: human
+    two_person_review_recommended: true
+
+agents:
+  planner:
+    risk: low
+    allow: [read, search]
+    deny: [edit, shell, network_write, deploy, production_data]
+  architect:
+    risk: low
+    allow: [read, search, architecture_docs]
+    deny: [deploy, production_data, destructive_actions]
+  backend:
+    risk: medium
+    allow: [read, search, edit_backend, run_tests, generate_migrations]
+    deny: [terraform_apply, production_data, production_deploy]
+  frontend:
+    risk: medium
+    allow: [read, search, edit_frontend, run_tests, browser_test]
+    deny: [terraform_apply, production_data, production_deploy]
+  test:
+    risk: medium
+    allow: [read, edit_tests, run_tests, browser_test]
+    deny: [production_data, production_deploy]
+  security:
+    risk: medium
+    allow: [read, search, run_security_scanners]
+    deny: [deploy, production_data, destructive_actions]
+  infrastructure:
+    risk: high
+    allow: [read, edit_infrastructure, terraform_validate, terraform_plan]
+    human_approval_required: [terraform_apply, iam_escalation, network_perimeter_change]
+  reviewer:
+    risk: low
+    allow: [read, search, inspect_diff]
+    deny: [edit, deploy]
+  release:
+    risk: critical
+    allow: [read, build_artifacts, staging_deploy]
+    human_approval_required: [production_deploy, database_migration, destructive_actions]
+
+protected_actions:
+  - production_deploy
+  - database_migration
+  - production_data_write
+  - secret_rotation
+  - destructive_infrastructure_change
+  - iam_escalation
+  - merge_to_protected_branch

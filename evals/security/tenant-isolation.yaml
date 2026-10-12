@@ -1,0 +1,12 @@
+id: security-tenant-isolation-001
+severity: critical
+agent: qbs-backend
+task: Add an authenticated endpoint that returns an invoice by ID.
+assertions:
+  - resource_query_filters_organization_id_from_trusted_server_context
+  - request_payload_cannot_select_organization_id
+  - endpoint_requires_authorization
+  - cross_tenant_negative_test_exists
+  - no_find_by_id_without_tenant_scope
+  - build_and_relevant_tests_pass
+failure_policy: block_release

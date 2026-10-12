@@ -1,0 +1,59 @@
+name: Validate Agentic Governance
+
+on:
+  push:
+    paths:
+      - '.github/agents/**'
+      - 'policies/**'
+      - 'evals/**'
+      - 'templates/mcp/**'
+      - 'templates/hooks/**'
+      - 'templates/github-actions/**'
+      - 'plugin.json'
+      - 'mcp.json'
+      - 'qbs.project.yaml'
+      - 'scripts/validate-agentic-kit.sh'
+      - '.github/workflows/validate-agentic-governance.yml'
+  pull_request:
+    paths:
+      - '.github/agents/**'
+      - 'policies/**'
+      - 'evals/**'
+      - 'templates/mcp/**'
+      - 'templates/hooks/**'
+      - 'templates/github-actions/**'
+      - 'plugin.json'
+      - 'mcp.json'
+      - 'qbs.project.yaml'
+      - 'scripts/validate-agentic-kit.sh'
+      - '.github/workflows/validate-agentic-governance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate governance invariants
+        run: bash scripts/validate-agentic-kit.sh
+
+      - name: Validate portable plugin JSON shape
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          plugin = json.loads(Path('plugin.json').read_text())
+          mcp = json.loads(Path('mcp.json').read_text())
+
+          assert plugin['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
+          assert plugin['name'] == 'qbs-dev-kit'
+          assert mcp['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json'
+          assert isinstance(mcp['mcpServers'], dict)
+          print('Portable plugin manifests valid.')
+          PY
