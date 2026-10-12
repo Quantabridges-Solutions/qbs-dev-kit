@@ -16,12 +16,16 @@ require_file templates/mcp/approved-servers.yaml
 require_file evals/security/tenant-isolation.yaml
 require_file evals/security/prompt-injection.yaml
 require_file evals/governance/production-boundary.yaml
+require_file .github/ISSUE_TEMPLATE/agent-task.yml
+require_file .github/dependabot.yml
 require_file .github/workflows/issue-to-pr.md
 require_file .github/workflows/pr-review.md
 require_file .github/workflows/ci-doctor.md
 require_file .github/workflows/compile-agentic-workflows.yml
 require_file .github/workflows/validate-agentic-workflows.yml
 require_file .github/workflows/agentic-telemetry.yml
+require_file scripts/setup-github-labels.sh
+require_file templates/github/dependabot.yml
 require_file templates/github-actions/preview-environment.yml
 require_file templates/agentic-workflows/ci-doctor.md
 
@@ -49,6 +53,12 @@ require_pattern qbs.project.yaml 'platform: github-agentic-workflows'
 require_pattern qbs.project.yaml 'compiler_version: 0\.91\.8'
 require_pattern qbs.project.yaml 'primary_cost_metric: ai_credits'
 
+# Human triage must precede agent authorization.
+require_pattern .github/ISSUE_TEMPLATE/agent-task.yml 'agent-candidate'
+reject_pattern .github/ISSUE_TEMPLATE/agent-task.yml 'labels:.*agent-ready'
+require_pattern scripts/setup-github-labels.sh 'agent-ready'
+require_pattern scripts/setup-github-labels.sh 'needs-human-review'
+
 # Agentic runtime workflows must have bounded cost, measurable outcomes and safe writes.
 for workflow in .github/workflows/issue-to-pr.md .github/workflows/pr-review.md .github/workflows/ci-doctor.md; do
   require_pattern "$workflow" '^max-ai-credits:'
@@ -60,10 +70,17 @@ require_pattern .github/workflows/issue-to-pr.md 'draft: true'
 require_pattern .github/workflows/issue-to-pr.md 'protected-files: fallback-to-issue'
 require_pattern .github/workflows/pr-review.md 'allowed-events: \[COMMENT\]'
 
-# gh-aw source workflows must be compiled with a pinned CLI and validated in CI.
+# gh-aw source workflows must use a pinned CLI and ordinary CI may not auto-approve
+# safe-update escalations or rewrite workflow files.
 require_pattern .github/workflows/compile-agentic-workflows.yml 'github/gh-aw --pin v0\.91\.8'
 require_pattern .github/workflows/validate-agentic-workflows.yml 'github/gh-aw --pin v0\.91\.8'
 require_pattern .github/workflows/validate-agentic-workflows.yml 'gh aw validate --strict'
+reject_pattern .github/workflows/compile-agentic-workflows.yml 'gh aw compile[^\n]*--approve'
+reject_pattern .github/workflows/compile-agentic-workflows.yml 'contents: write'
+
+# gh-aw owns action pins inside generated locks; dependency automation must not edit them directly.
+require_pattern .github/dependabot.yml 'github/gh-aw-actions/\*'
+require_pattern templates/github/dependabot.yml 'github/gh-aw-actions/\*'
 
 # Deployment templates may not rely on long-lived AWS access keys.
 if [[ -f templates/github-actions/deploy-api-lambda.yml ]]; then
