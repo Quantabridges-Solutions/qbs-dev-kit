@@ -1,0 +1,50 @@
+name: Compile Agentic Workflows
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/workflows/*.md'
+      - 'aw.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-aw-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned GitHub Agentic Workflows CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh extension install github/gh-aw --pin v0.91.8
+
+      - name: Compile and harden agentic workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh aw compile --strict --yamllint
+          gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")'
+
+      - name: Commit generated lock files
+        run: |
+          if git diff --quiet -- .github/workflows .github/aw; then
+            echo "Agentic workflow lock files are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/*.lock.yml .github/aw 2>/dev/null || true
+          git commit -m "chore: compile agentic workflow lock files"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
