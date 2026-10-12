@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: gh-aw-compile-${{ github.event.pull_request.number || github.ref }}
@@ -35,13 +35,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh extension install github/gh-aw --pin v0.91.8
 
-      - name: Compile reviewed v3.1 baseline
+      - name: Compile and harden agentic workflows
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # One-time baseline approval for the reviewed QBS_AUTOMATION_APP_PRIVATE_KEY
-          # reference. Remove --approve after the baseline lock files are committed.
-          gh aw compile --strict --yamllint --approve
+          gh aw compile --strict --yamllint
           gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")'
           git status --porcelain -- .github/workflows .github/aw > "${RUNNER_TEMP}/agentic-lock-drift.txt"
 
@@ -57,78 +55,20 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      - name: Create reviewed lock commit object
-        if: ${{ success() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify committed lock state
         run: |
-          set -euo pipefail
-          if [ ! -s "${RUNNER_TEMP}/agentic-lock-drift.txt" ]; then
-            echo "Committed lock files already match source; no staged commit needed."
+          tracked_locks="$(git ls-files '.github/workflows/*.lock.yml' | wc -l | tr -d ' ')"
+          if [ "$tracked_locks" = "0" ]; then
+            echo "No gh-aw lock files are committed yet. Source compilation succeeded and the reviewed lock artifact is attached to this run."
+            echo "Activation requires a maintainer-authenticated local 'gh aw compile' followed by committing the generated *.lock.yml and .github/aw/actions-lock.json files."
             exit 0
           fi
 
-          base_sha="$(git rev-parse HEAD)"
-          base_tree="$(git rev-parse HEAD^{tree})"
-
-          create_blob() {
-            local path="$1"
-            jq -n --rawfile content "$path" '{content:$content,encoding:"utf-8"}' \
-              | gh api --method POST "repos/${GITHUB_REPOSITORY}/git/blobs" --input - \
-              | jq -r '.sha'
-          }
-
-          ci_blob="$(create_blob .github/workflows/ci-doctor.lock.yml)"
-          issue_blob="$(create_blob .github/workflows/issue-to-pr.lock.yml)"
-          review_blob="$(create_blob .github/workflows/pr-review.lock.yml)"
-          actions_blob="$(create_blob .github/aw/actions-lock.json)"
-
-          tree_payload="$(jq -n \
-            --arg base "$base_tree" \
-            --arg ci "$ci_blob" \
-            --arg issue "$issue_blob" \
-            --arg review "$review_blob" \
-            --arg actions "$actions_blob" \
-            '{base_tree:$base,tree:[
-              {path:".github/workflows/ci-doctor.lock.yml",mode:"100644",type:"blob",sha:$ci},
-              {path:".github/workflows/issue-to-pr.lock.yml",mode:"100644",type:"blob",sha:$issue},
-              {path:".github/workflows/pr-review.lock.yml",mode:"100644",type:"blob",sha:$review},
-              {path:".github/aw/actions-lock.json",mode:"100644",type:"blob",sha:$actions}
-            ]}')"
-
-          tree_sha="$(printf '%s' "$tree_payload" \
-            | gh api --method POST "repos/${GITHUB_REPOSITORY}/git/trees" --input - \
-            | jq -r '.sha')"
-
-          commit_payload="$(jq -n \
-            --arg message 'chore: compile agentic workflow lock files' \
-            --arg tree "$tree_sha" \
-            --arg parent "$base_sha" \
-            '{message:$message,tree:$tree,parents:[$parent]}')"
-
-          compiled_commit="$(printf '%s' "$commit_payload" \
-            | gh api --method POST "repos/${GITHUB_REPOSITORY}/git/commits" --input - \
-            | jq -r '.sha')"
-
-          echo "COMPILED_COMMIT_SHA=$compiled_commit"
-          printf '{"base_sha":"%s","compiled_commit_sha":"%s"}\n' "$base_sha" "$compiled_commit" \
-            > "${RUNNER_TEMP}/compiled-commit.json"
-
-      - name: Upload staged commit metadata
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: compiled-agentic-commit-${{ github.run_id }}
-          path: ${{ runner.temp }}/compiled-commit.json
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Require committed locks to match source
-        run: |
           if [ -s "${RUNNER_TEMP}/agentic-lock-drift.txt" ]; then
-            echo "Compiled agentic workflow lock files differ from the committed branch." >&2
+            echo "Committed agentic workflow lock files are stale:" >&2
             cat "${RUNNER_TEMP}/agentic-lock-drift.txt" >&2
-            echo "A reviewed commit object has been staged for an authorized maintainer to advance the branch ref." >&2
+            echo "Run 'gh aw compile --strict --yamllint', review the generated files, and commit them." >&2
             exit 1
           fi
+
           echo "Committed agentic workflow lock files match source."
