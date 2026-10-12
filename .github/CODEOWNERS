@@ -1,0 +1,13 @@
+# Default owner
+* @moochdt003
+
+# High-impact agentic delivery controls
+/.github/agents/ @moochdt003
+/policies/ @moochdt003
+/evals/ @moochdt003
+/templates/github-actions/ @moochdt003
+/templates/hooks/ @moochdt003
+/templates/mcp/ @moochdt003
+/plugin.json @moochdt003
+/mcp.json @moochdt003
+/qbs.project.yaml @moochdt003
