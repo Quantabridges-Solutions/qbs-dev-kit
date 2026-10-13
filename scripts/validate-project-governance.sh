@@ -27,6 +27,7 @@ require .github/workflows/validate-agentic-workflows.yml
 require .github/workflows/agentic-telemetry.yml
 require .github/workflows/preview-environment.yml
 require scripts/setup-github-labels.sh
+require scripts/activate-agentic-runtime.sh
 require config/agentic/approved-mcp-servers.yaml
 
 if grep -R -nE 'AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY' .github/workflows GITHUB_SECRETS.md 2>/dev/null; then
@@ -47,6 +48,12 @@ grep -q 'protected-files: fallback-to-issue' .github/workflows/issue-to-pr.md ||
 grep -q 'graders:' .github/workflows/issue-to-pr.md || fail "runtime graders missing"
 grep -q 'evals:' .github/workflows/issue-to-pr.md || fail "runtime evals missing"
 grep -q 'github/gh-aw-actions/\*' .github/dependabot.yml || fail "Dependabot must ignore gh-aw compiler-managed action pins"
+
+grep -q 'GH_AW_VERSION="v0.91.8"' scripts/activate-agentic-runtime.sh || fail "activation helper must pin gh-aw v0.91.8"
+grep -q 'gh extension install github/gh-aw --force --pin' scripts/activate-agentic-runtime.sh || fail "activation helper must enforce pinned extension"
+if grep -Eq 'git push|gh pr merge|gh pr create' scripts/activate-agentic-runtime.sh; then
+  fail "activation helper must never push, merge or open PRs"
+fi
 
 if grep -Eq 'gh aw compile[^\n]*--approve' .github/workflows/compile-agentic-workflows.yml; then
   fail "Routine CI must not auto-approve gh-aw safe-update escalations"
