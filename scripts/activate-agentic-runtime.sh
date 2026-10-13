@@ -5,6 +5,12 @@ GH_AW_VERSION="v0.91.8"
 COMMIT=false
 APPROVE_REVIEWED=false
 
+# GitHub CLI currently has two extension-version edge cases relevant here:
+# - `gh extension install --force --pin <tag>` can ignore the pin for an already-installed extension.
+# - extension update notices can report any unequal version as an available "upgrade".
+# Keep notifier noise off and reinstall the exact pinned version only when required.
+export GH_NO_EXTENSION_UPDATE_NOTIFIER=1
+
 usage() {
   cat <<'EOF'
 Usage: bash scripts/activate-agentic-runtime.sh [--approve-reviewed] [--commit]
@@ -52,11 +58,27 @@ for source in \
   [[ -f "$source" ]] || { echo "Missing agentic source workflow: $source" >&2; exit 1; }
 done
 
-# Enforce the exact compiler version used by QBS lock files. --force replaces an
-# older/newer installed extension while --pin prevents accidental latest drift.
-echo "Ensuring github/gh-aw $GH_AW_VERSION ..."
-gh extension install github/gh-aw --force --pin "$GH_AW_VERSION"
-gh aw version
+current_version=""
+if gh aw version >/dev/null 2>&1; then
+  current_version="$(gh aw version 2>/dev/null | awk '{print $NF}')"
+fi
+
+if [[ "$current_version" != "$GH_AW_VERSION" ]]; then
+  echo "Installing exact github/gh-aw $GH_AW_VERSION (current: ${current_version:-not installed}) ..."
+  # Work around GitHub CLI's --force/--pin bug by removing first, then installing
+  # the required tag without --force.
+  gh extension remove gh-aw >/dev/null 2>&1 || gh extension remove aw >/dev/null 2>&1 || true
+  gh extension install github/gh-aw --pin "$GH_AW_VERSION"
+fi
+
+actual_version="$(gh aw version 2>/dev/null | awk '{print $NF}')"
+if [[ "$actual_version" != "$GH_AW_VERSION" ]]; then
+  echo "ERROR: expected gh-aw $GH_AW_VERSION but found ${actual_version:-unknown}." >&2
+  echo "Refusing to compile QBS lock workflows with a different compiler version." >&2
+  exit 1
+fi
+
+echo "Using gh-aw $actual_version"
 
 compile_args=(compile --strict --yamllint)
 if [[ "$APPROVE_REVIEWED" == true ]]; then
