@@ -83,7 +83,7 @@ reject_pattern .github/workflows/compile-agentic-workflows.yml 'contents: write'
 # Maintainer activation must be explicit, pinned and non-pushing.
 require_pattern scripts/activate-agentic-runtime.sh 'GH_AW_VERSION="v0\.91\.8"'
 require_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --force --pin'
-require_pattern scripts/activate-agentic-runtime.sh -- '--approve-reviewed'
+require_pattern scripts/activate-agentic-runtime.sh 'approve-reviewed'
 reject_pattern scripts/activate-agentic-runtime.sh 'git push|gh pr merge|gh pr create'
 require_pattern scripts/apply-agentic-foundation.sh 'activate-agentic-runtime\.sh'
 
