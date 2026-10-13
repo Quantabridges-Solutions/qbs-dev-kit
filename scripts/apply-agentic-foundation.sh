@@ -35,6 +35,7 @@ cp "$ROOT/evals/security/"*.yaml "$TARGET/evals/security/"
 cp "$ROOT/evals/governance/"*.yaml "$TARGET/evals/governance/"
 cp "$ROOT/templates/mcp/approved-servers.yaml" "$TARGET/config/agentic/approved-mcp-servers.yaml"
 cp "$ROOT/mcp.json" "$TARGET/mcp.json"
+cp "$ROOT/aw.yml" "$TARGET/aw.yml"
 
 sed "s/{project_name}/$PROJECT_NAME/g; s/{dotnet_arch}/$DOTNET_ARCH/g" \
   "$ROOT/templates/project/qbs.project.yaml" > "$TARGET/qbs.project.yaml"
@@ -102,7 +103,7 @@ Use `.github/ISSUE_TEMPLATE/agent-task.yml` for bounded agent candidates. New is
 
 ## Runtime activation
 
-Agentic source workflows live as `.github/workflows/*.md` and are compiled/hardened with the pinned GitHub Agentic Workflows (`gh-aw`) compiler. Do not hand-edit generated `*.lock.yml` files.
+Agentic source workflows live as `.github/workflows/*.md` and are compiled/hardened with the pinned GitHub Agentic Workflows (`gh-aw`) compiler. `aw.yml` declares the QBS runtime package and minimum compatible compiler version. Do not hand-edit generated `*.lock.yml` files.
 
 Activate or refresh the runtime from an authenticated maintainer shell:
 
