@@ -8,6 +8,7 @@ require() { [[ -f "$1" ]] || fail "Missing $1"; }
 
 require AGENTS.md
 require qbs.project.yaml
+require aw.yml
 require policies/agent-permissions.yaml
 require policies/tool-risk.yaml
 require .github/copilot-instructions.md
@@ -39,6 +40,8 @@ grep -q 'production_human_control: true' qbs.project.yaml || fail "production hu
 grep -q 'platform: github-agentic-workflows' qbs.project.yaml || fail "agentic runtime declaration missing"
 grep -q 'external_content_is_untrusted: true' policies/tool-risk.yaml || fail "untrusted-context policy missing"
 grep -q 'human_approval_required' policies/agent-permissions.yaml || fail "approval boundary missing"
+grep -q '^manifest-version: "1"$' aw.yml || fail "gh-aw package manifest version missing"
+grep -q '^min-version: v0.91.8$' aw.yml || fail "gh-aw package must require v0.91.8"
 grep -q 'agent-candidate' .github/ISSUE_TEMPLATE/agent-task.yml || fail "agent task intake must start as candidate"
 if grep -q 'labels:.*agent-ready' .github/ISSUE_TEMPLATE/agent-task.yml; then
   fail "agent task intake must not auto-authorize agent-ready"
