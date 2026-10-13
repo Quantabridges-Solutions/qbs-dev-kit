@@ -130,6 +130,20 @@ AI Credits (AIC) are the primary runtime cost metric. 1 AIC represents USD 0.01 
 
 Budget limits are safety rails, not expected spend. Tighten them as operating data becomes available.
 
+### Model routing for this repository
+
+The three activated workflows explicitly select `gpt-5.3-codex` for agent execution,
+threat detection and evals. The Copilot catalog observed during smoke-test run
+`38372150823` advertised this model with AI Credit pricing. In that same run,
+the implicit `auto` selection resolved to `gpt-5.6-luna-utility`, which had no pricing
+entry; the firewall rejected the request before inference to preserve budget enforcement.
+
+Keep all three execution phases on an available, priced model. Model availability
+and pricing can change: review the runtime catalog before changing these pins,
+then recompile and commit source + locks together. Do not disable the AI Credit
+guardrail or invent fallback prices to make an unpriced model run. Other organizations
+adopting the kit must verify their own Copilot catalog and billing policies.
+
 ## Evals and graders
 
 Every QBS runtime workflow declares both:
