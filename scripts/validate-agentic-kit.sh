@@ -88,9 +88,15 @@ require_pattern .github/workflows/validate-agentic-workflows.yml 'gh aw validate
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'gh aw compile[^\n]*--approve'
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'contents: write'
 
-# Maintainer activation must be explicit, pinned and non-pushing.
+# Maintainer activation must be explicit, pinned and non-pushing. Do not combine
+# --force with --pin because GitHub CLI may ignore the pin on installed binary extensions.
 require_pattern scripts/activate-agentic-runtime.sh 'GH_AW_VERSION="v0\.91\.8"'
-require_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --force --pin'
+require_pattern scripts/activate-agentic-runtime.sh 'GH_NO_EXTENSION_UPDATE_NOTIFIER=1'
+require_pattern scripts/activate-agentic-runtime.sh 'gh extension remove gh-aw'
+require_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --pin "\$GH_AW_VERSION"'
+require_pattern scripts/activate-agentic-runtime.sh 'actual_version='
+require_pattern scripts/activate-agentic-runtime.sh 'Refusing to compile QBS lock workflows with a different compiler version'
+reject_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --force --pin'
 require_pattern scripts/activate-agentic-runtime.sh 'approve-reviewed'
 reject_pattern scripts/activate-agentic-runtime.sh 'git push|gh pr merge|gh pr create'
 require_pattern scripts/apply-agentic-foundation.sh 'activate-agentic-runtime\.sh'
