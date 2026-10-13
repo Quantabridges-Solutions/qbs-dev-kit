@@ -25,6 +25,8 @@ require_file .github/workflows/compile-agentic-workflows.yml
 require_file .github/workflows/validate-agentic-workflows.yml
 require_file .github/workflows/agentic-telemetry.yml
 require_file scripts/setup-github-labels.sh
+require_file scripts/activate-agentic-runtime.sh
+require_file scripts/apply-agentic-foundation.sh
 require_file templates/github/dependabot.yml
 require_file templates/github-actions/preview-environment.yml
 require_file templates/agentic-workflows/ci-doctor.md
@@ -77,6 +79,13 @@ require_pattern .github/workflows/validate-agentic-workflows.yml 'github/gh-aw -
 require_pattern .github/workflows/validate-agentic-workflows.yml 'gh aw validate --strict'
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'gh aw compile[^\n]*--approve'
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'contents: write'
+
+# Maintainer activation must be explicit, pinned and non-pushing.
+require_pattern scripts/activate-agentic-runtime.sh 'GH_AW_VERSION="v0\.91\.8"'
+require_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --force --pin'
+require_pattern scripts/activate-agentic-runtime.sh -- '--approve-reviewed'
+reject_pattern scripts/activate-agentic-runtime.sh 'git push|gh pr merge|gh pr create'
+require_pattern scripts/apply-agentic-foundation.sh 'activate-agentic-runtime\.sh'
 
 # gh-aw owns action pins inside generated locks; dependency automation must not edit them directly.
 require_pattern .github/dependabot.yml 'github/gh-aw-actions/\*'
