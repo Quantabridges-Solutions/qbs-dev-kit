@@ -53,7 +53,13 @@ grep -q 'evals:' .github/workflows/issue-to-pr.md || fail "runtime evals missing
 grep -q 'github/gh-aw-actions/\*' .github/dependabot.yml || fail "Dependabot must ignore gh-aw compiler-managed action pins"
 
 grep -q 'GH_AW_VERSION="v0.91.8"' scripts/activate-agentic-runtime.sh || fail "activation helper must pin gh-aw v0.91.8"
-grep -q 'gh extension install github/gh-aw --force --pin' scripts/activate-agentic-runtime.sh || fail "activation helper must enforce pinned extension"
+grep -q 'GH_NO_EXTENSION_UPDATE_NOTIFIER=1' scripts/activate-agentic-runtime.sh || fail "activation helper must disable misleading extension update notices"
+grep -q 'gh extension remove gh-aw' scripts/activate-agentic-runtime.sh || fail "activation helper must remove mismatched gh-aw before reinstall"
+grep -q 'gh extension install github/gh-aw --pin "$GH_AW_VERSION"' scripts/activate-agentic-runtime.sh || fail "activation helper must install exact pinned gh-aw without --force"
+if grep -q 'gh extension install github/gh-aw --force --pin' scripts/activate-agentic-runtime.sh; then
+  fail "activation helper must not combine --force with --pin"
+fi
+grep -q 'Refusing to compile QBS lock workflows with a different compiler version' scripts/activate-agentic-runtime.sh || fail "activation helper must refuse compiler version drift"
 if grep -Eq 'git push|gh pr merge|gh pr create' scripts/activate-agentic-runtime.sh; then
   fail "activation helper must never push, merge or open PRs"
 fi
