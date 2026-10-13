@@ -47,15 +47,15 @@ Routine CI deliberately stays read-only for repository contents. `compile-agenti
 An authenticated maintainer activates or updates the runtime by reviewing and committing source + generated locks together. The helper script keeps this repeatable:
 
 ```bash
-./scripts/activate-agentic-runtime.sh
+bash scripts/activate-agentic-runtime.sh
 # Review any safe-update warning and generated diff.
-./scripts/activate-agentic-runtime.sh --commit
+bash scripts/activate-agentic-runtime.sh --commit
 ```
 
 If `gh-aw` blocks compilation because the reviewed change introduces a restricted secret, action, redirect or trigger escalation, inspect the warning and source diff first. Only for that exact reviewed change may a maintainer run:
 
 ```bash
-./scripts/activate-agentic-runtime.sh --approve-reviewed --commit
+bash scripts/activate-agentic-runtime.sh --approve-reviewed --commit
 ```
 
 The helper never pushes or merges. Normal branch protection, CODEOWNERS, CI and PR review still apply.
@@ -92,7 +92,7 @@ New tasks receive `agent-candidate`, not `agent-ready`. A human maintainer revie
 Bootstrap the standard labels once per repository:
 
 ```bash
-./scripts/setup-github-labels.sh owner/repo
+bash scripts/setup-github-labels.sh owner/repo
 ```
 
 Optional specialist labels:
