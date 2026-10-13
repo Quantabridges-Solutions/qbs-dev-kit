@@ -7,7 +7,7 @@ APPROVE_REVIEWED=false
 
 usage() {
   cat <<'EOF'
-Usage: scripts/activate-agentic-runtime.sh [--approve-reviewed] [--commit]
+Usage: bash scripts/activate-agentic-runtime.sh [--approve-reviewed] [--commit]
 
 Compiles and validates QBS GitHub Agentic Workflows from an authenticated
 maintainer shell. This script never pushes or merges.
@@ -36,6 +36,7 @@ done
 
 command -v git >/dev/null 2>&1 || { echo "git is required" >&2; exit 1; }
 command -v gh >/dev/null 2>&1 || { echo "GitHub CLI (gh) is required" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 
 git rev-parse --show-toplevel >/dev/null 2>&1 || {
   echo "Run this command inside a Git repository." >&2
@@ -51,11 +52,11 @@ for source in \
   [[ -f "$source" ]] || { echo "Missing agentic source workflow: $source" >&2; exit 1; }
 done
 
-# Do not install arbitrary latest code: bootstrap only the pinned compiler version.
-if ! gh aw --help >/dev/null 2>&1; then
-  echo "Installing github/gh-aw $GH_AW_VERSION ..."
-  gh extension install github/gh-aw --pin "$GH_AW_VERSION"
-fi
+# Enforce the exact compiler version used by QBS lock files. --force replaces an
+# older/newer installed extension while --pin prevents accidental latest drift.
+echo "Ensuring github/gh-aw $GH_AW_VERSION ..."
+gh extension install github/gh-aw --force --pin "$GH_AW_VERSION"
+gh aw version
 
 compile_args=(compile --strict --yamllint)
 if [[ "$APPROVE_REVIEWED" == true ]]; then
@@ -78,7 +79,6 @@ fi
 
 echo "Validating compiled runtime..."
 gh aw validate --strict
-
 gh aw list --json | jq -e 'all(.[]; .compiled == "Yes")' >/dev/null
 
 required=(
@@ -121,6 +121,6 @@ if [[ "$COMMIT" == true ]]; then
   fi
 else
   echo
-echo "Runtime compilation is valid. No commit was created."
+  echo "Runtime compilation is valid. No commit was created."
   echo "Rerun with --commit after reviewing the generated diff."
 fi
