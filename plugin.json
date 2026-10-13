@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qbs-dev-kit",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "QBS agentic delivery platform: portable engineering skills, governed agents, executable evals, preview environments, telemetry, and SaaS delivery standards.",
   "author": {
     "name": "Quantabridges Solutions",

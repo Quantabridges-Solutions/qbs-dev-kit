@@ -8,6 +8,7 @@ require() { [[ -f "$1" ]] || fail "Missing $1"; }
 
 require AGENTS.md
 require qbs.project.yaml
+require aw.yml
 require policies/agent-permissions.yaml
 require policies/tool-risk.yaml
 require .github/copilot-instructions.md
@@ -27,6 +28,7 @@ require .github/workflows/validate-agentic-workflows.yml
 require .github/workflows/agentic-telemetry.yml
 require .github/workflows/preview-environment.yml
 require scripts/setup-github-labels.sh
+require scripts/activate-agentic-runtime.sh
 require config/agentic/approved-mcp-servers.yaml
 
 if grep -R -nE 'AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY' .github/workflows GITHUB_SECRETS.md 2>/dev/null; then
@@ -38,6 +40,8 @@ grep -q 'production_human_control: true' qbs.project.yaml || fail "production hu
 grep -q 'platform: github-agentic-workflows' qbs.project.yaml || fail "agentic runtime declaration missing"
 grep -q 'external_content_is_untrusted: true' policies/tool-risk.yaml || fail "untrusted-context policy missing"
 grep -q 'human_approval_required' policies/agent-permissions.yaml || fail "approval boundary missing"
+grep -q '^manifest-version: "1"$' aw.yml || fail "gh-aw package manifest version missing"
+grep -q '^min-version: v0.91.8$' aw.yml || fail "gh-aw package must require v0.91.8"
 grep -q 'agent-candidate' .github/ISSUE_TEMPLATE/agent-task.yml || fail "agent task intake must start as candidate"
 if grep -q 'labels:.*agent-ready' .github/ISSUE_TEMPLATE/agent-task.yml; then
   fail "agent task intake must not auto-authorize agent-ready"
@@ -47,6 +51,12 @@ grep -q 'protected-files: fallback-to-issue' .github/workflows/issue-to-pr.md ||
 grep -q 'graders:' .github/workflows/issue-to-pr.md || fail "runtime graders missing"
 grep -q 'evals:' .github/workflows/issue-to-pr.md || fail "runtime evals missing"
 grep -q 'github/gh-aw-actions/\*' .github/dependabot.yml || fail "Dependabot must ignore gh-aw compiler-managed action pins"
+
+grep -q 'GH_AW_VERSION="v0.91.8"' scripts/activate-agentic-runtime.sh || fail "activation helper must pin gh-aw v0.91.8"
+grep -q 'gh extension install github/gh-aw --force --pin' scripts/activate-agentic-runtime.sh || fail "activation helper must enforce pinned extension"
+if grep -Eq 'git push|gh pr merge|gh pr create' scripts/activate-agentic-runtime.sh; then
+  fail "activation helper must never push, merge or open PRs"
+fi
 
 if grep -Eq 'gh aw compile[^\n]*--approve' .github/workflows/compile-agentic-workflows.yml; then
   fail "Routine CI must not auto-approve gh-aw safe-update escalations"

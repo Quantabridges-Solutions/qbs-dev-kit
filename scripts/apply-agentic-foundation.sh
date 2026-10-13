@@ -28,12 +28,14 @@ cp "$ROOT/.github/ISSUE_TEMPLATE/agent-task.yml" "$TARGET/.github/ISSUE_TEMPLATE
 cp "$ROOT/.github/instructions/"*.instructions.md "$TARGET/.github/instructions/"
 cp "$ROOT/templates/github/dependabot.yml" "$TARGET/.github/dependabot.yml"
 cp "$ROOT/scripts/setup-github-labels.sh" "$TARGET/scripts/setup-github-labels.sh"
-chmod +x "$TARGET/scripts/setup-github-labels.sh"
+cp "$ROOT/scripts/activate-agentic-runtime.sh" "$TARGET/scripts/activate-agentic-runtime.sh"
+chmod +x "$TARGET/scripts/setup-github-labels.sh" "$TARGET/scripts/activate-agentic-runtime.sh"
 cp "$ROOT/policies/"*.yaml "$TARGET/policies/"
 cp "$ROOT/evals/security/"*.yaml "$TARGET/evals/security/"
 cp "$ROOT/evals/governance/"*.yaml "$TARGET/evals/governance/"
 cp "$ROOT/templates/mcp/approved-servers.yaml" "$TARGET/config/agentic/approved-mcp-servers.yaml"
 cp "$ROOT/mcp.json" "$TARGET/mcp.json"
+cp "$ROOT/aw.yml" "$TARGET/aw.yml"
 
 sed "s/{project_name}/$PROJECT_NAME/g; s/{dotnet_arch}/$DOTNET_ARCH/g" \
   "$ROOT/templates/project/qbs.project.yaml" > "$TARGET/qbs.project.yaml"
@@ -97,11 +99,21 @@ This project uses QBS agent permission, tool-risk, runtime evaluation and produc
 
 ## Intake and authorization
 
-Use `.github/ISSUE_TEMPLATE/agent-task.yml` for bounded agent candidates. New issues start as `agent-candidate`; a human maintainer must explicitly add `agent-ready` before the issue-to-PR agent is authorized. Run `./scripts/setup-github-labels.sh owner/repo` once to create the standard label set.
+Use `.github/ISSUE_TEMPLATE/agent-task.yml` for bounded agent candidates. New issues start as `agent-candidate`; a human maintainer must explicitly add `agent-ready` before the issue-to-PR agent is authorized. Run `bash scripts/setup-github-labels.sh owner/repo` once to create the standard label set.
 
-## Runtime
+## Runtime activation
 
-Agentic source workflows live as `.github/workflows/*.md` and are compiled/hardened with the pinned GitHub Agentic Workflows (`gh-aw`) compiler. Do not hand-edit generated `*.lock.yml` files.
+Agentic source workflows live as `.github/workflows/*.md` and are compiled/hardened with the pinned GitHub Agentic Workflows (`gh-aw`) compiler. `aw.yml` declares the QBS runtime package and minimum compatible compiler version. Do not hand-edit generated `*.lock.yml` files.
+
+Activate or refresh the runtime from an authenticated maintainer shell:
+
+```bash
+bash scripts/activate-agentic-runtime.sh
+# review safe-update warnings and generated diff
+bash scripts/activate-agentic-runtime.sh --commit
+```
+
+Use `--approve-reviewed` only after explicitly reviewing the exact gh-aw safe-update escalation. The helper never pushes or merges.
 
 - Apply the `agent-ready` label to an implementation-ready issue to request a bounded draft PR.
 - Non-draft PRs receive a separate read-only QBS agent review.
@@ -111,7 +123,7 @@ Agentic source workflows live as `.github/workflows/*.md` and are compiled/harde
 
 ## Preview environments
 
-Apply the `preview` label to a PR to create an isolated `pr-N` AWS environment. RDS and Redis are disabled by default for cost and data-isolation reasons. Removing the label or closing the PR destroys the workspace.
+Apply the `preview` label to a same-repository PR to create an isolated `pr-N` AWS environment. RDS and Redis are disabled by default. PR build/package scripts run without AWS credentials; trusted base-branch Terraform provisions infrastructure; a separate publish job receives short-lived preview credentials only after artifacts are built. Removing the label or closing the PR destroys the workspace.
 
 ## Hard boundaries
 
@@ -120,23 +132,23 @@ Production deployment, production database migration, destructive infrastructure
 Required PR evidence should include build/tests, security/dependency scans, tenant-isolation evidence where relevant, migration impact, infrastructure impact, rollout/rollback notes, eval evidence and any required approval boundary.
 EOF
 
-# Compile the executable gh-aw lock files locally when the caller already has the
-# pinned extension available. GitHub Actions intentionally validates/exports locks
-# but does not receive permission to rewrite workflow files.
+# Compile executable gh-aw lock files locally when the caller already has the
+# basic CLI dependencies. Routine GitHub Actions intentionally validates/exports
+# locks but does not receive permission to rewrite workflow files.
 LOCK_STATUS="not-compiled"
-if command -v gh >/dev/null 2>&1 && gh aw --help >/dev/null 2>&1; then
-  if (cd "$TARGET" && gh aw compile --strict --yamllint); then
+if command -v gh >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  if (cd "$TARGET" && bash scripts/activate-agentic-runtime.sh); then
     LOCK_STATUS="compiled"
   else
-    echo "WARNING: gh-aw source files were installed, but local lock compilation failed." >&2
-    echo "Run: cd '$TARGET' && gh aw compile --strict --yamllint" >&2
+    echo "WARNING: agentic sources were installed, but local lock activation needs maintainer review." >&2
+    echo "Run from the project root: bash scripts/activate-agentic-runtime.sh" >&2
   fi
 else
-  echo "NOTE: gh-aw is not available in this shell. Install the pinned extension, compile, review and commit lock files:" >&2
-  echo "  gh extension install github/gh-aw --pin v0.91.8" >&2
-  echo "  cd '$TARGET' && gh aw compile --strict --yamllint" >&2
+  echo "NOTE: gh and jq are required to activate executable gh-aw lock files." >&2
+  echo "After installing them, run from the project root:" >&2
+  echo "  bash scripts/activate-agentic-runtime.sh" >&2
 fi
 
 echo "Applied QBS agentic runtime foundation to $TARGET"
 echo "Project: $PROJECT_NAME | .NET architecture: $DOTNET_ARCH | gh-aw locks: $LOCK_STATUS"
-echo "Next: run ./scripts/setup-github-labels.sh owner/repo, review/commit generated lock files, configure production reviewers, AWS OIDC roles/state, and optional QBS Automation GitHub App."
+echo "Next: run 'bash scripts/setup-github-labels.sh owner/repo', review/commit generated locks, configure production reviewers, AWS OIDC roles/state, and the optional QBS Automation GitHub App."

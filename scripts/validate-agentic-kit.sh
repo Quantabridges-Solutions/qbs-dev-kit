@@ -12,6 +12,7 @@ reject_pattern() { if grep -Eq "$2" "$1"; then fail "$1 contains forbidden patte
 require_file policies/agent-permissions.yaml
 require_file policies/tool-risk.yaml
 require_file qbs.project.yaml
+require_file aw.yml
 require_file templates/mcp/approved-servers.yaml
 require_file evals/security/tenant-isolation.yaml
 require_file evals/security/prompt-injection.yaml
@@ -25,6 +26,8 @@ require_file .github/workflows/compile-agentic-workflows.yml
 require_file .github/workflows/validate-agentic-workflows.yml
 require_file .github/workflows/agentic-telemetry.yml
 require_file scripts/setup-github-labels.sh
+require_file scripts/activate-agentic-runtime.sh
+require_file scripts/apply-agentic-foundation.sh
 require_file templates/github/dependabot.yml
 require_file templates/github-actions/preview-environment.yml
 require_file templates/agentic-workflows/ci-doctor.md
@@ -53,6 +56,13 @@ require_pattern qbs.project.yaml 'platform: github-agentic-workflows'
 require_pattern qbs.project.yaml 'compiler_version: 0\.91\.8'
 require_pattern qbs.project.yaml 'primary_cost_metric: ai_credits'
 
+# gh-aw package metadata must enforce the same runtime floor and include all QBS sources.
+require_pattern aw.yml '^manifest-version: "1"$'
+require_pattern aw.yml '^min-version: v0\.91\.8$'
+require_pattern aw.yml 'issue-to-pr\.md'
+require_pattern aw.yml 'pr-review\.md'
+require_pattern aw.yml 'ci-doctor\.md'
+
 # Human triage must precede agent authorization.
 require_pattern .github/ISSUE_TEMPLATE/agent-task.yml 'agent-candidate'
 reject_pattern .github/ISSUE_TEMPLATE/agent-task.yml 'labels:.*agent-ready'
@@ -77,6 +87,14 @@ require_pattern .github/workflows/validate-agentic-workflows.yml 'github/gh-aw -
 require_pattern .github/workflows/validate-agentic-workflows.yml 'gh aw validate --strict'
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'gh aw compile[^\n]*--approve'
 reject_pattern .github/workflows/compile-agentic-workflows.yml 'contents: write'
+
+# Maintainer activation must be explicit, pinned and non-pushing.
+require_pattern scripts/activate-agentic-runtime.sh 'GH_AW_VERSION="v0\.91\.8"'
+require_pattern scripts/activate-agentic-runtime.sh 'gh extension install github/gh-aw --force --pin'
+require_pattern scripts/activate-agentic-runtime.sh 'approve-reviewed'
+reject_pattern scripts/activate-agentic-runtime.sh 'git push|gh pr merge|gh pr create'
+require_pattern scripts/apply-agentic-foundation.sh 'activate-agentic-runtime\.sh'
+require_pattern scripts/apply-agentic-foundation.sh 'aw\.yml'
 
 # gh-aw owns action pins inside generated locks; dependency automation must not edit them directly.
 require_pattern .github/dependabot.yml 'github/gh-aw-actions/\*'

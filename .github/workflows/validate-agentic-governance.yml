@@ -4,28 +4,54 @@ on:
   push:
     paths:
       - '.github/agents/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/dependabot.yml'
       - 'policies/**'
       - 'evals/**'
+      - 'schemas/**'
+      - 'templates/agentic-workflows/**'
       - 'templates/mcp/**'
       - 'templates/hooks/**'
+      - 'templates/github/**'
       - 'templates/github-actions/**'
       - 'plugin.json'
+      - '.cursor-plugin/plugin.json'
+      - '.claude-plugin/plugin.json'
+      - 'VERSION'
+      - 'aw.yml'
       - 'mcp.json'
       - 'qbs.project.yaml'
+      - 'scripts/activate-agentic-runtime.sh'
+      - 'scripts/apply-agentic-foundation.sh'
+      - 'scripts/setup-github-labels.sh'
       - 'scripts/validate-agentic-kit.sh'
+      - 'scripts/validate-project-governance.sh'
       - '.github/workflows/validate-agentic-governance.yml'
   pull_request:
     paths:
       - '.github/agents/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/dependabot.yml'
       - 'policies/**'
       - 'evals/**'
+      - 'schemas/**'
+      - 'templates/agentic-workflows/**'
       - 'templates/mcp/**'
       - 'templates/hooks/**'
+      - 'templates/github/**'
       - 'templates/github-actions/**'
       - 'plugin.json'
+      - '.cursor-plugin/plugin.json'
+      - '.claude-plugin/plugin.json'
+      - 'VERSION'
+      - 'aw.yml'
       - 'mcp.json'
       - 'qbs.project.yaml'
+      - 'scripts/activate-agentic-runtime.sh'
+      - 'scripts/apply-agentic-foundation.sh'
+      - 'scripts/setup-github-labels.sh'
       - 'scripts/validate-agentic-kit.sh'
+      - 'scripts/validate-project-governance.sh'
       - '.github/workflows/validate-agentic-governance.yml'
 
 permissions:
@@ -37,23 +63,38 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate shell syntax
+        run: |
+          bash -n scripts/activate-agentic-runtime.sh
+          bash -n scripts/apply-agentic-foundation.sh
+          bash -n scripts/setup-github-labels.sh
+          bash -n scripts/validate-agentic-kit.sh
+          bash -n scripts/validate-project-governance.sh
 
       - name: Validate governance invariants
         run: bash scripts/validate-agentic-kit.sh
 
-      - name: Validate portable plugin JSON shape
+      - name: Validate portable manifests and version coherence
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
 
+          version = Path('VERSION').read_text().strip()
           plugin = json.loads(Path('plugin.json').read_text())
+          cursor = json.loads(Path('.cursor-plugin/plugin.json').read_text())
+          claude = json.loads(Path('.claude-plugin/plugin.json').read_text())
           mcp = json.loads(Path('mcp.json').read_text())
+          json.loads(Path('schemas/agent-run.schema.json').read_text())
 
           assert plugin['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
           assert plugin['name'] == 'qbs-dev-kit'
+          assert plugin['version'] == version
+          assert cursor['version'] == version
+          assert claude['version'] == version
           assert mcp['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json'
           assert isinstance(mcp['mcpServers'], dict)
-          print('Portable plugin manifests valid.')
+          print(f'Portable manifests valid and coherent at version {version}.')
           PY

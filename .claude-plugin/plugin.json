@@ -1,7 +1,7 @@
 {
   "name": "qbs-dev-kit",
   "description": "QBS governed agentic SaaS delivery platform — .NET, React, Expo, Terraform, SDD, runtime evals, previews and telemetry.",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": {
     "name": "Quantabridges Solutions"
   }

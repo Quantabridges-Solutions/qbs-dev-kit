@@ -2,6 +2,25 @@
 
 All notable QBS Dev Kit changes should be recorded here. Versions follow Semantic Versioning.
 
+## 3.1.1 — 2026-10-13
+
+### Added
+
+- `scripts/activate-agentic-runtime.sh` for reproducible maintainer-side `gh-aw` activation.
+- Explicit `--approve-reviewed` flow for one-time, human-reviewed safe-update escalations.
+
+### Changed
+
+- Runtime activation now force-pins `gh-aw` v0.91.8 instead of trusting an already-installed extension version.
+- Runtime guide now documents human-gated `agent-candidate` → `agent-ready` intake and the hardened preview trust zones.
+- Bootstrap/activation commands use `bash scripts/...` and do not depend on executable-bit preservation.
+
+### Security
+
+- Routine CI remains unable to rewrite workflow files; generated `*.lock.yml` activation stays at the authenticated maintainer boundary.
+- The activation helper validates generated locks, requires `git`, `gh`, and `jq`, never pushes or merges, and only passes `--approve` when the maintainer explicitly chooses `--approve-reviewed`.
+- Preview documentation now makes the trust boundary explicit: PR build scripts receive no AWS credentials and PR-controlled Terraform is not applied with cloud authority.
+
 ## 3.1.0 — 2026-10-12
 
 ### Added

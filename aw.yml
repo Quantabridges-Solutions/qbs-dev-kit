@@ -1,0 +1,10 @@
+manifest-version: "1"
+min-version: v0.91.8
+name: QBS Agentic Runtime
+description: Governed issue delivery, PR review and CI diagnosis workflows for QBS software teams.
+license: CC-BY-ND-4.0
+experimental: false
+includes:
+  - .github/workflows/issue-to-pr.md
+  - .github/workflows/pr-review.md
+  - .github/workflows/ci-doctor.md
